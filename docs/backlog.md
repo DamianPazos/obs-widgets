@@ -116,11 +116,11 @@ Alertas conectadas a la plataforma.
 
 - ✅ `KickApiClient`: app token, canal→id, alta/listado de suscripciones.
 - ✅ Auto-suscripción a follows/subs al iniciar (`KickEventSource.start()`).
-- ✅ Verificación de firma de webhooks + tests (falta validar con payloads reales).
+- ✅ Verificación de firma de webhooks + tests, **validada con webhooks reales de Kick**.
 - ✅ Mapeo de eventos reales (followed, subscription.new/renewal/gifts, chat).
 - ✅ Documentar el paso a paso (README).
+- ✅ **Probado end-to-end en vivo**: follows reales → firma OK (0 descartes) → HTTP 200 → alerta.
 - 🚧 Flujo OAuth de usuario (rutas `/auth/kick*`) — base lista, falta persistir tokens.
-- ⬜ Probar end-to-end contra Kick en vivo (credenciales + túnel).
 - ⬜ Widget dedicado de `subscription.new` y renovaciones (issue #3).
 
 ---
