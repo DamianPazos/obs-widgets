@@ -26,7 +26,10 @@ const EnvSchema = z.object({
 export type AppConfig = z.infer<typeof EnvSchema>;
 
 export function loadConfig(): AppConfig {
-  const parsed = EnvSchema.safeParse(process.env);
+  // Ignoramos variables vacías (ej. PUBLIC_URL=) para que apliquen los defaults
+  // y los campos opcionales no fallen validando un string vacío.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ''));
+  const parsed = EnvSchema.safeParse(env);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
