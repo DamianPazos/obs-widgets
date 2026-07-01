@@ -1,45 +1,91 @@
 import { BaseEventSource } from '@obs-widgets/core';
+import { KickApiClient, type KickEventSubscription } from './kick-api';
 import {
+  DEFAULT_KICK_EVENTS,
   mapKickWebhookToEvent,
   verifyKickSignature,
   type KickWebhookHeaders,
 } from './kick-webhooks';
 
 export interface KickSourceOptions {
-  /** Slug del canal a monitorear (fallback si el payload no lo trae). */
+  /** Slug del canal a monitorear. */
   channel: string;
   /** Si es `true`, se rechazan webhooks sin firma válida. */
   verifySignature: boolean;
-  /** Clave pública PEM de Kick para verificar firmas (requerida si verifySignature). */
+  /** Clave pública PEM de Kick (si no se pasa y hay credenciales, se obtiene sola). */
   publicKeyPem?: string;
+  /** Credenciales de la app de Kick (habilitan la auto-suscripción). */
+  clientId?: string;
+  clientSecret?: string;
+  /** Eventos a los que suscribirse. Por defecto follows + subs. */
+  events?: KickEventSubscription[];
+  /** Logger opcional. */
+  log?: (message: string) => void;
 }
 
 /**
- * Fuente de eventos conectada a Kick vía webhooks.
+ * Fuente de eventos conectada a Kick por webhooks.
  *
- * A diferencia de una conexión saliente, Kick nos "empuja" los eventos por HTTP.
- * Por eso `start()` no abre nada: es el servidor el que, al recibir un webhook,
- * llama a `ingestWebhook()`. Esta clase se encarga de verificar la firma,
- * normalizar el payload y emitir el evento de dominio.
+ * En `start()`, si hay credenciales:
+ *  1. obtiene un app token,
+ *  2. resuelve el `broadcaster_user_id` del canal,
+ *  3. asegura las suscripciones de eventos (método webhook),
+ *  4. obtiene la clave pública para verificar firmas.
+ *
+ * Los eventos llegan como webhooks entrantes: el servidor llama a
+ * `ingestWebhook()`, que verifica la firma, normaliza y emite el evento.
  */
 export class KickEventSource extends BaseEventSource {
   readonly name = 'kick';
+  private api: KickApiClient | null = null;
+  private publicKeyPem?: string;
 
   constructor(private readonly options: KickSourceOptions) {
     super();
+    this.publicKeyPem = options.publicKeyPem;
   }
 
   async start(): Promise<void> {
-    if (this.options.verifySignature && !this.options.publicKeyPem) {
+    const log = this.options.log ?? (() => {});
+    const hasCredentials = Boolean(this.options.clientId && this.options.clientSecret);
+
+    if (hasCredentials) {
+      this.api = new KickApiClient({
+        clientId: this.options.clientId!,
+        clientSecret: this.options.clientSecret!,
+      });
+
+      if (this.options.verifySignature && !this.publicKeyPem) {
+        this.publicKeyPem = await this.api.getPublicKey();
+        log('Kick: clave pública obtenida para verificar firmas.');
+      }
+
+      const broadcasterId = await this.api.getBroadcasterId(this.options.channel);
+      const events = this.options.events ?? DEFAULT_KICK_EVENTS;
+      const created = await this.api.ensureSubscriptions(broadcasterId, events);
+      const createdNames = created.map((e) => e.name).join(', ');
+      log(
+        `Kick: canal "${this.options.channel}" (id ${broadcasterId}). ` +
+          `Suscripciones nuevas: ${createdNames || 'ninguna (ya existían)'}.`,
+      );
+      return;
+    }
+
+    // Modo manual: sin credenciales solo recibimos webhooks ya configurados a mano.
+    if (this.options.verifySignature && !this.publicKeyPem) {
       throw new Error(
-        'KickEventSource: falta la clave pública para verificar firmas. ' +
-          'Configurá KICK_WEBHOOK_PUBLIC_KEY o poné KICK_VERIFY_SIGNATURE=false para pruebas locales.',
+        'KickEventSource: sin credenciales no puedo obtener la clave pública. ' +
+          'Configurá KICK_CLIENT_ID/KICK_CLIENT_SECRET, o KICK_WEBHOOK_PUBLIC_KEY, ' +
+          'o poné KICK_VERIFY_SIGNATURE=false para pruebas locales.',
       );
     }
+    log(
+      'Kick: modo manual (sin credenciales). Configurá webhook y suscripciones en el panel de Kick.',
+    );
   }
 
   async stop(): Promise<void> {
-    /* nada que liberar: los webhooks son entrantes */
+    /* los webhooks son entrantes: nada que cerrar. */
   }
 
   /**
@@ -48,8 +94,9 @@ export class KickEventSource extends BaseEventSource {
    */
   ingestWebhook(headers: KickWebhookHeaders, rawBody: string): boolean {
     if (this.options.verifySignature) {
+      if (!this.publicKeyPem) return false;
       const valid = verifyKickSignature({
-        publicKeyPem: this.options.publicKeyPem!,
+        publicKeyPem: this.publicKeyPem,
         messageId: headers.messageId,
         timestamp: headers.timestamp,
         rawBody,

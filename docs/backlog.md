@@ -102,23 +102,26 @@ Alertas conectadas a la plataforma.
 - ✅ Cliente WebSocket con reconexión.
 - ✅ `FollowerAlert.svelte` con cola de alertas.
 
-### HU-3.3 — Integración real con la API de Kick ⬜
+### HU-3.3 — Integración real con la API de Kick 🚧
 
 > Como **streamer**, quiero recibir seguidores/subs reales desde Kick.
 
 **Criterios de aceptación**
 
-- OAuth 2.0 (PKCE) funcionando end-to-end.
-- Webhooks verificados por firma.
-- Suscripción a eventos del canal automatizada.
+- Suscripción a eventos del canal automatizada. ✅
+- Webhooks verificados por firma (RSA-SHA256). ✅
+- OAuth 2.1 (PKCE) de usuario funcionando end-to-end.
 
 **Tareas**
 
-- 🚧 Flujo OAuth (rutas `/auth/kick*`) — base implementada, falta persistencia de tokens.
-- 🚧 Verificación de firma de webhooks — implementada, validar contra payloads reales.
-- ⬜ Automatizar el alta de suscripciones de eventos vía API.
-- ⬜ Documentar el paso a paso con capturas.
-- ⬜ Manejo de `subscription.new` y renovaciones en un widget dedicado.
+- ✅ `KickApiClient`: app token, canal→id, alta/listado de suscripciones.
+- ✅ Auto-suscripción a follows/subs al iniciar (`KickEventSource.start()`).
+- ✅ Verificación de firma de webhooks + tests (falta validar con payloads reales).
+- ✅ Mapeo de eventos reales (followed, subscription.new/renewal/gifts, chat).
+- ✅ Documentar el paso a paso (README).
+- 🚧 Flujo OAuth de usuario (rutas `/auth/kick*`) — base lista, falta persistir tokens.
+- ⬜ Probar end-to-end contra Kick en vivo (credenciales + túnel).
+- ⬜ Widget dedicado de `subscription.new` y renovaciones (issue #3).
 
 ---
 

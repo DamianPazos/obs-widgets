@@ -114,34 +114,41 @@ Deberías ver la alerta en el widget `follower-alert`.
 
 ---
 
-## 🟢 Conectar con Kick (tiempo real real)
+## 🟢 Conectar con Kick (eventos reales)
 
-1. Creá una app en el [portal de desarrolladores de Kick](https://kick.com/settings/developer)
-   y obtené `client_id` / `client_secret`.
-2. En `apps/server/.env`:
+El servidor automatiza casi todo: con las credenciales de tu app obtiene el
+token, **resuelve el id del canal**, **se suscribe solo a los eventos** (follows
+y subs) y **descarga la clave pública** para verificar las firmas de los webhooks.
 
-   ```env
-   EVENT_SOURCE=kick
-   KICK_CHANNEL=tu_canal
-   KICK_CLIENT_ID=...
-   KICK_CLIENT_SECRET=...
-   PUBLIC_URL=https://tu-tunel.ngrok-free.app
-   KICK_VERIFY_SIGNATURE=true
-   KICK_WEBHOOK_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
-   ```
+**1. Creá una app** en el [portal de desarrolladores de Kick](https://kick.com/settings/developer)
+y guardá `client_id` y `client_secret`.
 
-3. Como los webhooks necesitan una URL pública, en local exponé el servidor con un túnel:
+**2. Exponé el servidor con un túnel** (los webhooks necesitan una URL pública):
 
-   ```bash
-   # ejemplo con cloudflared o ngrok
-   ngrok http 8787
-   ```
+```bash
+ngrok http 8787          # o: cloudflared tunnel --url http://localhost:8787
+```
 
-4. Registrá el webhook `https://<tu-tunel>/webhooks/kick` en tu app de Kick y suscribite
-   a los eventos (ej. `channel.followed`).
+**3. En el panel de Kick**, habilitá los webhooks y configurá el _Webhook URL_
+apuntando a `https://<tu-tunel>/webhooks/kick`.
 
-> ⚠️ La API de desarrolladores de Kick está en evolución. El mapeo de eventos vive en
-> [packages/kick/src/kick-webhooks.ts](packages/kick/src/kick-webhooks.ts) y es fácil de ajustar.
+**4. Completá `apps/server/.env`:**
+
+```env
+EVENT_SOURCE=kick
+KICK_CHANNEL=tu_canal
+KICK_CLIENT_ID=xxxx
+KICK_CLIENT_SECRET=xxxx
+PUBLIC_URL=https://tu-tunel.ngrok-free.app
+KICK_VERIFY_SIGNATURE=true
+```
+
+**5. Levantá todo con `pnpm dev`.** En el log del server vas a ver la suscripción
+creada. Seguí el canal desde otra cuenta y la alerta aparece en `follower-alert`.
+
+> ⚠️ La API de Kick está en evolución. Los nombres/versiones de eventos y el
+> mapeo de payloads viven en [packages/kick/src/kick-webhooks.ts](packages/kick/src/kick-webhooks.ts)
+> y son fáciles de ajustar en un solo lugar.
 
 ---
 

@@ -18,6 +18,9 @@ export function createEventSource(config: AppConfig): SourceBundle {
       channel: config.KICK_CHANNEL,
       verifySignature: config.KICK_VERIFY_SIGNATURE,
       publicKeyPem: config.KICK_WEBHOOK_PUBLIC_KEY,
+      clientId: config.KICK_CLIENT_ID,
+      clientSecret: config.KICK_CLIENT_SECRET,
+      log: (message) => console.info(`[kick] ${message}`),
     });
     return { source: kick, kick };
   }

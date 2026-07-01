@@ -15,6 +15,7 @@ export function registerWebhookRoute(app: FastifyInstance, kick: KickEventSource
       timestamp: String(req.headers['kick-event-message-timestamp'] ?? ''),
       signature: String(req.headers['kick-event-signature'] ?? ''),
       eventType: String(req.headers['kick-event-type'] ?? ''),
+      version: String(req.headers['kick-event-version'] ?? ''),
     };
 
     const rawBody = req.rawBody ?? JSON.stringify(req.body ?? {});

@@ -1,29 +1,42 @@
 import { createVerify } from 'node:crypto';
 import { makeEvent, type WidgetEvent } from '@obs-widgets/core';
+import type { KickEventSubscription } from './kick-api';
 
 /**
- * Utilidades para procesar los webhooks de la API oficial de Kick.
+ * Procesamiento de los webhooks de la API oficial de Kick: verificación de
+ * firma y normalización de payloads a eventos de dominio (`WidgetEvent`).
  *
- * NOTA: la API de Kick para desarrolladores está en evolución. Los nombres de
- * eventos y la forma exacta del payload pueden cambiar; este mapeo está pensado
- * para ser fácil de ajustar en un solo lugar.
- * Docs: https://docs.kick.com/
+ * Nombres/versiones de eventos según https://docs.kick.com/events/event-types
  */
 
-/** Headers relevantes que envía Kick en cada webhook. */
+/** Eventos a los que nos suscribimos por defecto (todos versión 1). */
+export const DEFAULT_KICK_EVENTS: KickEventSubscription[] = [
+  { name: 'channel.followed', version: 1 },
+  { name: 'channel.subscription.new', version: 1 },
+  { name: 'channel.subscription.renewal', version: 1 },
+  { name: 'channel.subscription.gifts', version: 1 },
+];
+
+/** Headers que envía Kick en cada webhook. */
 export interface KickWebhookHeaders {
+  /** `Kick-Event-Message-Id` (ULID). */
   messageId: string;
+  /** `Kick-Event-Message-Timestamp` (RFC3339). */
   timestamp: string;
+  /** `Kick-Event-Signature` (base64). */
   signature: string;
+  /** `Kick-Event-Type` (ej. channel.followed). */
   eventType: string;
+  /** `Kick-Event-Version` (ej. 1). */
+  version?: string;
 }
 
 /**
  * Verifica la firma de un webhook de Kick.
  *
  * Kick firma la cadena `${messageId}.${timestamp}.${rawBody}` con su clave
- * privada RSA; se valida con la clave pública (obtenible desde su endpoint
- * público de claves). Devolvé `true` solo si la firma es válida.
+ * privada RSA (RSA-SHA256, PKCS#1 v1.5). Se valida con la clave pública PEM
+ * obtenida de `GET https://api.kick.com/public/v1/public-key`.
  */
 export function verifyKickSignature(params: {
   publicKeyPem: string;
@@ -44,18 +57,27 @@ export function verifyKickSignature(params: {
 }
 
 interface KickBroadcaster {
-  broadcaster_user_id?: number | string;
+  user_id?: number | string;
   channel_slug?: string;
   slug?: string;
   username?: string;
 }
 
+interface KickUserRef {
+  user_id?: number | string;
+  username?: string;
+  profile_picture?: string;
+  is_anonymous?: boolean;
+}
+
 interface KickWebhookPayload {
   broadcaster?: KickBroadcaster;
-  follower?: { username?: string; user_id?: number | string; profile_picture?: string };
-  subscriber?: { username?: string };
+  follower?: KickUserRef;
+  subscriber?: KickUserRef;
+  gifter?: KickUserRef;
+  giftees?: unknown[];
+  sender?: KickUserRef;
   duration?: number;
-  sender?: { username?: string };
   content?: string;
   [key: string]: unknown;
 }
@@ -69,9 +91,13 @@ function resolveChannel(payload: KickWebhookPayload, fallback: string): string {
   );
 }
 
+function asId(value: number | string | undefined): string | undefined {
+  return value != null ? String(value) : undefined;
+}
+
 /**
- * Normaliza un webhook de Kick a un `WidgetEvent` del dominio, o `null` si el
- * tipo de evento no nos interesa.
+ * Normaliza un webhook de Kick a un `WidgetEvent`, o `null` si el tipo de
+ * evento no nos interesa.
  */
 export function mapKickWebhookToEvent(
   eventType: string,
@@ -87,20 +113,29 @@ export function mapKickWebhookToEvent(
         channel,
         payload: {
           username: payload.follower?.username ?? 'anónimo',
-          userId: payload.follower?.user_id != null ? String(payload.follower.user_id) : undefined,
+          userId: asId(payload.follower?.user_id),
           avatarUrl: payload.follower?.profile_picture,
         },
       });
 
     case 'channel.subscription.new':
     case 'channel.subscription.renewal':
+      return makeEvent<WidgetEvent>({
+        type: 'subscription.new',
+        channel,
+        payload: {
+          username: payload.subscriber?.username ?? 'anónimo',
+          months: typeof payload.duration === 'number' ? payload.duration : 1,
+        },
+      });
+
     case 'channel.subscription.gifts':
       return makeEvent<WidgetEvent>({
         type: 'subscription.new',
         channel,
         payload: {
-          username: payload.subscriber?.username ?? payload.sender?.username ?? 'anónimo',
-          months: typeof payload.duration === 'number' ? payload.duration : 1,
+          username: payload.gifter?.username ?? 'anónimo',
+          months: Array.isArray(payload.giftees) ? payload.giftees.length : 1,
         },
       });
 
