@@ -1,0 +1,23 @@
+{
+  "name": "@obs-widgets/kick",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Adapters de fuentes de eventos: MockEventSource (offline) y KickEventSource (webhooks de Kick).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@obs-widgets/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

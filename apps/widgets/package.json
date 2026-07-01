@@ -1,0 +1,24 @@
+{
+  "name": "@obs-widgets/widgets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend de los widgets para OBS (Browser Source). Cada widget se auto-registra.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "lint": "eslint .",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@obs-widgets/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "svelte": "^5.16.0",
+    "svelte-check": "^4.1.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

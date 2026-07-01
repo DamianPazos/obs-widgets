@@ -1,0 +1,30 @@
+name: 🧩 Propuesta de widget
+description: Idea para un widget nuevo
+labels: [widget, enhancement]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Nombre del widget
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Tipo
+      options:
+        - Offline (sin conexión)
+        - Tiempo real (eventos de Kick)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: ¿Qué debería mostrar / hacer?
+    validations:
+      required: true
+  - type: textarea
+    id: params
+    attributes:
+      label: Parámetros configurables (opcional)
+      placeholder: title, color, duración...
