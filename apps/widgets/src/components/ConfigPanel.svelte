@@ -205,7 +205,7 @@
       {:else}
         <form class="card" onsubmit={(e) => e.preventDefault()}>
           {#each params as param (param.name)}
-            <label class="field">
+            <div class="field">
               <span class="label">{param.label}</span>
               {#if param.description}<span class="hint">{param.description}</span>{/if}
 
@@ -326,7 +326,7 @@
                   oninput={(e) => (values[param.name] = e.currentTarget.value)}
                 />
               {/if}
-            </label>
+            </div>
           {/each}
 
           <button type="button" class="reset" onclick={reset}>Restablecer estilos</button>
