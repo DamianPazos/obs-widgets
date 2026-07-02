@@ -50,7 +50,9 @@ export function createLayoutController<T extends Layout>(defaults: T): LayoutCon
 
   function select(id: string): void {
     selected = id;
-    post({ type: 'select', id, pos: (layout as Layout)[id] });
+    // Copia plana: el proxy reactivo de $state no es clonable por postMessage.
+    const p = (layout as Layout)[id];
+    post({ type: 'select', id, pos: p ? { x: p.x, y: p.y, s: p.s } : null });
   }
 
   if (edit) {
