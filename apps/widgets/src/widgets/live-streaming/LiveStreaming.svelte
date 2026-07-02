@@ -5,10 +5,12 @@
   const title = getParam('title', 'EN VIVO');
   const subtitle = getParam('subtitle', 'Bienvenidos al stream');
   const accent = `#${getParam('accent', '53fc18')}`;
+  const showClock = getParam('clock', 'true') !== 'false';
 
   let now = $state(new Date());
 
   onMount(() => {
+    if (!showClock) return;
     const id = setInterval(() => (now = new Date()), 1000);
     return () => clearInterval(id);
   });
@@ -24,7 +26,7 @@
     <strong>{title}</strong>
     <span>{subtitle}</span>
   </div>
-  <time>{clock}</time>
+  {#if showClock}<time>{clock}</time>{/if}
 </div>
 
 <style>

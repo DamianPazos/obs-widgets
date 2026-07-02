@@ -13,7 +13,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function stubKickApi(): void {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: string | URL, init?: { method?: string }) => {
+    vi.fn(async (input: string | URL) => {
       const url = String(input);
       if (url.endsWith('/oauth/token'))
         return jsonResponse({ access_token: 'tok', expires_in: 3600 });

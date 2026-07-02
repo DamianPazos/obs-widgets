@@ -15,6 +15,7 @@ Hay dos tipos de widgets:
 ## ✨ Características
 
 - 🧩 **Arquitectura de plugins**: cada widget se auto-registra. Crear uno nuevo = una carpeta.
+- 🎨 **Panel de personalización visual**: editá colores, textos y opciones con vista previa en vivo y copiá la URL lista para OBS (formulario auto-generado desde cada widget).
 - 🔌 **Puertos y adaptadores**: la fuente de eventos (Kick, mock, …) es intercambiable por config.
 - 🟢 **Integración con Kick** vía la API oficial (OAuth + webhooks).
 - 🧪 **Modo mock** para desarrollar y previsualizar sin credenciales.
@@ -111,6 +112,14 @@ Deberías ver la alerta en el widget `follower-alert`.
 
 > Para publicar los widgets sin tener la PC prendida, corré `pnpm --filter @obs-widgets/widgets build`
 > y serví la carpeta `apps/widgets/dist` en cualquier hosting estático (Netlify, GitHub Pages, etc.).
+
+### 🎨 Personalizar sin tocar código
+
+En la página índice, tocá **⚙ Personalizar** en cualquier widget. Se abre un panel
+(`/?config=<id>`) donde ajustás colores, textos y opciones con **vista previa en vivo**
+y te da la **URL lista para copiar** a OBS. El formulario se genera automáticamente a
+partir de los parámetros declarados en el `manifest` de cada widget, así que **cada widget
+nuevo obtiene su personalizador gratis**.
 
 ---
 

@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { FollowerNewEvent } from '@obs-widgets/core';
+  import { makeEvent, type FollowerNewEvent } from '@obs-widgets/core';
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
   const durationMs = Number(getParam('duration', '6000')) || 6000;
+  const accent = `#${getParam('accent', '53fc18')}`;
+  const title = getParam('title', '¡Nuevo seguidor!');
+  const icon = getParam('icon', '💚');
+  const isPreview = getParam('preview') === '1';
 
   let current = $state<FollowerNewEvent | null>(null);
   let status = $state<ConnectionStatus>('connecting');
@@ -27,27 +31,46 @@
     }, durationMs);
   }
 
-  onMount(() =>
-    connectEvents({
+  function enqueue(event: FollowerNewEvent): void {
+    queue.push(event);
+    showNext();
+  }
+
+  onMount(() => {
+    if (isPreview) {
+      // Modo vista previa: alertas de ejemplo en loop, sin necesidad de servidor.
+      status = 'open';
+      const demo = () =>
+        enqueue(
+          makeEvent<FollowerNewEvent>({
+            type: 'follower.new',
+            channel,
+            payload: { username: 'Nombre_Ejemplo' },
+          }),
+        );
+      demo();
+      const id = setInterval(demo, durationMs + 1200);
+      return () => clearInterval(id);
+    }
+
+    return connectEvents({
       serverUrl,
       channel,
       events: ['follower.new'],
       onEvent: (event) => {
-        if (event.type !== 'follower.new') return;
-        queue.push(event);
-        showNext();
+        if (event.type === 'follower.new') enqueue(event);
       },
       onStatus: (next) => (status = next),
-    }),
-  );
+    });
+  });
 </script>
 
 <div class="stage">
   {#if current}
-    <div class="alert">
-      <div class="icon">💚</div>
+    <div class="alert" style="--accent: {accent}">
+      <div class="icon">{icon}</div>
       <div class="body">
-        <span class="label">¡Nuevo seguidor!</span>
+        <span class="label">{title}</span>
         <strong class="name">{current.payload.username}</strong>
       </div>
     </div>
@@ -71,10 +94,11 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem 1.75rem;
-    background: linear-gradient(135deg, rgba(83, 252, 24, 0.95), rgba(28, 160, 12, 0.95));
-    color: #06210a;
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #000));
+    color: #fff;
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
     animation:
       pop 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28),
       fade 0.4s ease;
@@ -94,7 +118,7 @@
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    opacity: 0.85;
+    opacity: 0.9;
   }
 
   .name {

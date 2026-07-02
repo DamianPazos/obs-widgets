@@ -1,12 +1,17 @@
 <script lang="ts">
+  import ConfigPanel from './components/ConfigPanel.svelte';
   import Index from './components/Index.svelte';
   import { getWidget } from './lib/registry';
 
-  const id = new URLSearchParams(window.location.search).get('widget');
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('widget');
+  const configId = params.get('config');
   const widget = id ? getWidget(id) : undefined;
 </script>
 
-{#if !id}
+{#if configId}
+  <ConfigPanel />
+{:else if !id}
   <Index />
 {:else if !widget}
   <div class="error">

@@ -21,10 +21,19 @@ export const manifest: WidgetManifest = {
   name: 'Mi Widget',
   description: 'Qué hace este widget.',
   mode: 'offline', // 'offline' | 'realtime'
-  params: [{ name: 'texto', description: 'Texto a mostrar', example: 'Hola' }],
+  params: [
+    { name: 'texto', label: 'Texto a mostrar', type: 'text', default: 'Hola mundo' },
+    { name: 'color', label: 'Color', type: 'color', default: 'ffffff' },
+  ],
   load: () => import('./MiWidget.svelte'),
 };
 ```
+
+Los `params` son **tipados** (`text` | `color` | `number` | `boolean` | `select`) y a partir
+de ellos el **panel de personalización** (`/?config=mi-widget`) genera el formulario solo, con
+vista previa en vivo. Regla: el `default` del manifest debe coincidir con el fallback que usás
+al leer el parámetro en el componente. Los colores viajan sin `#` en la URL (el widget se lo
+antepone).
 
 ## 3. `MiWidget.svelte` (offline)
 

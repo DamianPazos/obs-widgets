@@ -20,7 +20,8 @@
     <h1>OBS Widgets</h1>
     <p>
       Copiá la URL de un widget y agregala en OBS como <strong>Fuente → Navegador</strong>
-      (recomendado: 1920×1080, fondo transparente). Los parámetros se ajustan en la propia URL.
+      (recomendado: 1920×1080, fondo transparente). Usá <strong>Personalizar</strong> para editar colores,
+      textos y opciones con vista previa y obtener la URL lista.
     </p>
   </header>
 
@@ -41,8 +42,8 @@
             <ul class="params">
               {#each widget.params as param (param.name)}
                 <li>
-                  <code>{param.name}</code> — {param.description}
-                  {#if param.example}<em>(ej: {param.example})</em>{/if}
+                  <code>{param.name}</code> — {param.label}
+                  <em>(default: {param.default})</em>
                 </li>
               {/each}
             </ul>
@@ -55,14 +56,17 @@
             {copiedId === widget.id ? '¡Copiado!' : 'Copiar'}
           </button>
         </div>
-        <a
-          class="preview"
-          href={widgetUrl(widget.id, widget.mode)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Previsualizar ↗
-        </a>
+        <div class="actions">
+          <a class="configure" href={`?config=${widget.id}`}>⚙ Personalizar</a>
+          <a
+            class="preview"
+            href={widgetUrl(widget.id, widget.mode)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Previsualizar ↗
+          </a>
+        </div>
       </li>
     {/each}
   </ul>
@@ -192,6 +196,26 @@
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.9rem;
+    align-items: center;
+  }
+
+  .configure {
+    color: #06210a;
+    background: #53fc18;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+  }
+
+  .configure:hover {
+    filter: brightness(1.05);
   }
 
   .preview {

@@ -166,7 +166,7 @@ Ampliar el catálogo.
 ## Deuda técnica / mejoras
 
 - ⬜ Tests e2e de un widget con Playwright.
-- ⬜ Panel de configuración visual (generador de URLs).
+- ✅ Panel de configuración visual: params tipados + formulario auto-generado + preview en vivo + URL lista (`/?config=<id>`).
 - ⬜ Temas/skins reutilizables entre widgets.
 - ⬜ Rate limiting y healthchecks en el servidor.
 - ⬜ Sonidos en las alertas.
