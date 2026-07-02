@@ -1,4 +1,5 @@
 import type { WidgetManifest } from '../../lib/manifest';
+import { styleParams } from '../../lib/style';
 
 export const manifest: WidgetManifest = {
   id: 'live-streaming',
@@ -10,12 +11,19 @@ export const manifest: WidgetManifest = {
     { name: 'title', label: 'Título', type: 'text', default: 'EN VIVO' },
     { name: 'subtitle', label: 'Subtítulo', type: 'text', default: 'Bienvenidos al stream' },
     { name: 'accent', label: 'Color de acento', type: 'color', default: '53fc18' },
-    {
-      name: 'clock',
-      label: 'Mostrar reloj',
-      type: 'boolean',
-      default: true,
-    },
+    { name: 'clock', label: 'Mostrar reloj', type: 'boolean', default: true },
+    ...styleParams(
+      'scale',
+      'font',
+      'fontWeight',
+      'fg',
+      'bg',
+      'bgOpacity',
+      'borderWidth',
+      'borderColor',
+      'radius',
+      'bgImage',
+    ),
   ],
   load: () => import('./LiveStreaming.svelte'),
 };

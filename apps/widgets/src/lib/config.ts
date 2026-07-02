@@ -23,3 +23,8 @@ export function getChannel(fallback = 'demo'): string {
 export function getParam(name: string, fallback = ''): string {
   return params().get(name) ?? fallback;
 }
+
+/** Lee un parámetro crudo: `null` si no está en la URL (útil para estilos opcionales). */
+export function getRawParam(name: string): string | null {
+  return params().get(name);
+}

@@ -3,6 +3,7 @@
   import type { StreamStatusEvent } from '@obs-widgets/core';
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
+  import { isImageUrl, themeStyle } from '../../lib/style';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
@@ -63,8 +64,12 @@
 </script>
 
 {#if visible}
-  <div class="uptime" class:offline={!live} style="--accent: {accent}">
-    <span class="icon">{icon}</span>
+  <div class="uptime" class:offline={!live} style="--accent: {accent}; {themeStyle()}">
+    {#if isImageUrl(icon)}
+      <img class="icon-img" src={icon} alt="" />
+    {:else}
+      <span class="icon">{icon}</span>
+    {/if}
     <div class="body">
       <span class="label">{live ? label : 'OFFLINE'}</span>
       <strong class="time">{fmt(elapsed)}</strong>
@@ -82,12 +87,18 @@
     align-items: center;
     gap: 0.85rem;
     padding: 0.7rem 1.15rem;
-    background: rgba(13, 15, 20, 0.85);
-    border: 1px solid var(--accent);
-    border-radius: 12px;
+    color: var(--w-fg, #fff);
+    font-family: var(--w-font, inherit);
+    background-color: var(--w-bg, rgba(13, 15, 20, 0.85));
+    background-image: var(--w-bg-image, none);
+    background-size: cover;
+    background-position: center;
+    border: var(--w-border-width, 1px) solid var(--w-border-color, var(--accent));
+    border-radius: var(--w-radius, 12px);
     backdrop-filter: blur(6px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-    color: #fff;
+    transform: scale(var(--w-scale, 1));
+    transform-origin: center;
   }
 
   .uptime.offline {
@@ -100,7 +111,15 @@
     line-height: 1;
   }
 
-  .uptime:not(.offline) .icon {
+  .icon-img {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+
+  .uptime:not(.offline) .icon,
+  .uptime:not(.offline) .icon-img {
     animation: blink 1.6s ease-in-out infinite;
   }
 
@@ -114,12 +133,13 @@
     font-size: 0.72rem;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #c3c9d2;
+    opacity: 0.8;
   }
 
   .time {
     font-size: 1.6rem;
     font-variant-numeric: tabular-nums;
+    font-weight: var(--w-font-weight, 700);
   }
 
   .conn {

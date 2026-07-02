@@ -29,11 +29,50 @@ export const manifest: WidgetManifest = {
 };
 ```
 
-Los `params` son **tipados** (`text` | `color` | `number` | `boolean` | `select`) y a partir
-de ellos el **panel de personalización** (`/?config=mi-widget`) genera el formulario solo, con
-vista previa en vivo. Regla: el `default` del manifest debe coincidir con el fallback que usás
-al leer el parámetro en el componente. Los colores viajan sin `#` en la URL (el widget se lo
-antepone).
+Los `params` son **tipados** (`text` | `color` | `number` | `range` | `boolean` | `select` |
+`image`) y a partir de ellos el **panel de personalización** (`/?config=mi-widget`) genera el
+formulario solo, con vista previa en vivo. Regla: el `default` del manifest debe coincidir con el
+fallback que usás al leer el parámetro en el componente. Los colores viajan sin `#` en la URL (el
+widget se lo antepone).
+
+### Estilos comunes (tamaño, tipografía, bordes, colores, fondo, imágenes)
+
+Sumá los controles de estilo compartidos con `styleParams(...)` y aplicá `themeStyle()` en el
+elemento raíz de tu widget:
+
+```ts
+// manifest.ts
+import { styleParams } from '../../lib/style';
+params: [
+  /* ...tus params... */
+  ...styleParams('scale', 'font', 'fg', 'bg', 'bgOpacity', 'borderWidth', 'borderColor', 'radius', 'bgImage'),
+],
+```
+
+```svelte
+<!-- MiWidget.svelte -->
+<script lang="ts">
+  import { themeStyle } from '../../lib/style';
+</script>
+
+<div class="card" style={themeStyle()}>…</div>
+
+<style>
+  .card {
+    /* referenciá las variables con un fallback = tu look por defecto */
+    transform: scale(var(--w-scale, 1));
+    color: var(--w-fg, #fff);
+    background-color: var(--w-bg, rgba(13, 15, 20, 0.85));
+    background-image: var(--w-bg-image, none);
+    border: var(--w-border-width, 1px) solid var(--w-border-color, #53fc18);
+    border-radius: var(--w-radius, 12px);
+    font-family: var(--w-font, inherit);
+  }
+</style>
+```
+
+`themeStyle()` solo emite la variable de lo que el usuario cambió, así el widget conserva su
+aspecto por defecto en todo lo demás.
 
 ## 3. `MiWidget.svelte` (offline)
 

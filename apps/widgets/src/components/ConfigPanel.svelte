@@ -80,6 +80,18 @@
                   oninput={(e) => (values[param.name] = e.currentTarget.value.replace('#', ''))}
                 />
               </span>
+            {:else if param.type === 'range'}
+              <span class="range-row">
+                <input
+                  type="range"
+                  min={param.min}
+                  max={param.max}
+                  step={param.step}
+                  value={values[param.name]}
+                  oninput={(e) => (values[param.name] = e.currentTarget.value)}
+                />
+                <span class="range-val">{values[param.name]}</span>
+              </span>
             {:else if param.type === 'number'}
               <input
                 type="number"
@@ -104,6 +116,13 @@
                   <option value={opt.value}>{opt.label}</option>
                 {/each}
               </select>
+            {:else if param.type === 'image'}
+              <input
+                type="text"
+                placeholder="https://…"
+                value={values[param.name]}
+                oninput={(e) => (values[param.name] = e.currentTarget.value)}
+              />
             {:else}
               <input
                 type="text"
@@ -265,6 +284,25 @@
   .color-row .hex {
     flex: 1;
     min-width: 0;
+  }
+
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .range-row input[type='range'] {
+    flex: 1;
+    accent-color: #53fc18;
+  }
+
+  .range-val {
+    min-width: 2.6rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #aeb6c2;
+    font-size: 0.85rem;
   }
 
   .reset {

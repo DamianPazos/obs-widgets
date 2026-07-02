@@ -3,6 +3,7 @@
   import { makeEvent, type FollowerNewEvent } from '@obs-widgets/core';
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
+  import { isImageUrl, themeStyle } from '../../lib/style';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
@@ -38,7 +39,6 @@
 
   onMount(() => {
     if (isPreview) {
-      // Modo vista previa: alertas de ejemplo en loop, sin necesidad de servidor.
       status = 'open';
       const demo = () =>
         enqueue(
@@ -66,28 +66,41 @@
 </script>
 
 {#if current}
-  <div class="alert" style="--accent: {accent}">
-    <div class="icon">{icon}</div>
-    <div class="body">
-      <span class="label">{title}</span>
-      <strong class="name">{current.payload.username}</strong>
+  <div class="alert-wrap" style="--accent: {accent}; {themeStyle()}">
+    <div class="alert">
+      {#if isImageUrl(icon)}
+        <img class="icon-img" src={icon} alt="" />
+      {:else}
+        <span class="icon">{icon}</span>
+      {/if}
+      <div class="body">
+        <span class="label">{title}</span>
+        <strong class="name">{current.payload.username}</strong>
+      </div>
     </div>
   </div>
 {/if}
 
-{#if status !== 'open'}
-  <div class="status" title="Estado de la conexión con el servidor">● {status}</div>
+{#if !isPreview && status !== 'open'}
+  <div class="conn" title="Estado de la conexión con el servidor">● {status}</div>
 {/if}
 
 <style>
+  .alert-wrap {
+    font-family: var(--w-font, inherit);
+    color: var(--w-fg, #fff);
+    transform: scale(var(--w-scale, 1));
+    transform-origin: center;
+  }
+
   .alert {
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 1.25rem 1.75rem;
-    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #000));
-    color: #fff;
-    border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), rgba(0, 0, 0, 0.35));
+    color: inherit;
+    border-radius: var(--w-radius, 16px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
     animation:
@@ -100,6 +113,14 @@
     animation: bounce 0.9s ease infinite alternate;
   }
 
+  .icon-img {
+    width: 2.75rem;
+    height: 2.75rem;
+    object-fit: contain;
+    border-radius: 8px;
+    animation: bounce 0.9s ease infinite alternate;
+  }
+
   .body {
     display: flex;
     flex-direction: column;
@@ -107,6 +128,7 @@
 
   .label {
     font-size: 0.9rem;
+    font-weight: var(--w-font-weight, 600);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     opacity: 0.9;
@@ -115,9 +137,10 @@
   .name {
     font-size: 1.9rem;
     line-height: 1.1;
+    font-weight: var(--w-font-weight, 700);
   }
 
-  .status {
+  .conn {
     position: fixed;
     bottom: 8px;
     right: 12px;

@@ -2,7 +2,8 @@ import type { Component } from 'svelte';
 import type { WidgetEventType } from '@obs-widgets/core';
 
 /** Tipo de control con el que se edita un parámetro en el panel de config. */
-export type WidgetParamType = 'text' | 'color' | 'number' | 'boolean' | 'select';
+export type WidgetParamType =
+  'text' | 'color' | 'number' | 'range' | 'boolean' | 'select' | 'image';
 
 /** Opción para parámetros de tipo `select`. */
 export interface WidgetParamOption {
