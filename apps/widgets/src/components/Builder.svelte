@@ -2,38 +2,56 @@
   import { getWidget, widgets } from '../lib/registry';
   import { clamp } from '../lib/layout';
   import {
+    CANVAS_PRESETS,
     decodeScene,
+    DEFAULT_CANVAS,
     encodeScene,
     instanceUrl,
     newInstanceId,
+    type Scene,
     type SceneInstance,
   } from '../lib/scene';
 
   const STORAGE_KEY = 'obs-scene';
   const DEFAULT_RECT = { x: 35, y: 38, w: 30, h: 22 };
 
-  function initInstances(): SceneInstance[] {
+  function initScene(): Scene {
     const fromUrl = new URLSearchParams(window.location.search).get('scene');
-    if (fromUrl) return decodeScene(fromUrl).instances;
+    if (fromUrl) return decodeScene(fromUrl);
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return decodeScene(saved).instances;
-    return [];
+    if (saved) return decodeScene(saved);
+    return { instances: [] };
   }
 
-  let instances = $state<SceneInstance[]>(initInstances());
+  const initial = initScene();
+  let instances = $state<SceneInstance[]>(initial.instances);
+  let canvas = $state<{ w: number; h: number }>(initial.canvas ?? { ...DEFAULT_CANVAS });
   let selectedId = $state<string | null>(null);
   let addChoice = $state<string>(widgets[0]?.id ?? '');
   let importUrl = $state('');
   let copied = $state(false);
   let canvasEl: HTMLElement;
 
-  const sceneUrl = $derived(`${window.location.origin}/?scene=${encodeScene({ instances })}`);
+  const sceneUrl = $derived(
+    `${window.location.origin}/?scene=${encodeScene({ instances, canvas })}`,
+  );
   const selected = $derived(instances.find((i) => i.id === selectedId) ?? null);
 
   // Persistimos la escena en localStorage mientras se edita.
   $effect(() => {
-    localStorage.setItem(STORAGE_KEY, encodeScene({ instances }));
+    localStorage.setItem(STORAGE_KEY, encodeScene({ instances, canvas }));
   });
+
+  function applyPreset(value: string): void {
+    const [w, h] = value.split('x').map(Number);
+    if (Number.isFinite(w) && Number.isFinite(h) && w && h) canvas = { w, h };
+  }
+
+  const presetValue = $derived(
+    CANVAS_PRESETS.some((p) => p.w === canvas.w && p.h === canvas.h)
+      ? `${canvas.w}x${canvas.h}`
+      : 'custom',
+  );
 
   function widgetName(widgetId: string): string {
     return getWidget(widgetId)?.name ?? widgetId;
@@ -147,6 +165,24 @@
   <div class="layout">
     <aside class="side">
       <section class="card">
+        <h3>Tamaño del lienzo</h3>
+        <div class="add-row">
+          <select value={presetValue} onchange={(e) => applyPreset(e.currentTarget.value)}>
+            {#each CANVAS_PRESETS as p (p.label)}
+              <option value="{p.w}x{p.h}">{p.label}</option>
+            {/each}
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div class="add-row size-row">
+          <input type="number" min="200" step="10" bind:value={canvas.w} />
+          <span>×</span>
+          <input type="number" min="200" step="10" bind:value={canvas.h} />
+        </div>
+        <p class="hint">En OBS poné la Browser Source de {canvas.w}×{canvas.h}.</p>
+      </section>
+
+      <section class="card">
         <h3>Agregar widget</h3>
         <div class="add-row">
           <select bind:value={addChoice}>
@@ -200,27 +236,29 @@
     </aside>
 
     <section class="stage-pane">
-      <div class="stage" bind:this={canvasEl}>
-        {#each instances as inst (inst.id)}
-          <div
-            class="inst-box"
-            class:selected={selectedId === inst.id}
-            style="left: {inst.rect.x}%; top: {inst.rect.y}%; width: {inst.rect.w}%; height: {inst
-              .rect.h}%;"
-          >
-            <iframe
-              class="inst-frame"
-              title={inst.widget}
-              src={instanceUrl(inst, { fit: '1', preview: '1' })}
-            ></iframe>
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="inst-overlay" onpointerdown={(e) => startMove(inst, e)}></div>
-            {#if selectedId === inst.id}
+      <div class="stage-frame">
+        <div class="stage" bind:this={canvasEl} style="aspect-ratio: {canvas.w} / {canvas.h};">
+          {#each instances as inst (inst.id)}
+            <div
+              class="inst-box"
+              class:selected={selectedId === inst.id}
+              style="left: {inst.rect.x}%; top: {inst.rect.y}%; width: {inst.rect.w}%; height: {inst
+                .rect.h}%;"
+            >
+              <iframe
+                class="inst-frame"
+                title={inst.widget}
+                src={instanceUrl(inst, { fit: '1', preview: '1' })}
+              ></iframe>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="handle br" onpointerdown={(e) => startResize(inst, e)}></div>
-            {/if}
-          </div>
-        {/each}
+              <div class="inst-overlay" onpointerdown={(e) => startMove(inst, e)}></div>
+              {#if selectedId === inst.id}
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="handle br" onpointerdown={(e) => startResize(inst, e)}></div>
+              {/if}
+            </div>
+          {/each}
+        </div>
       </div>
 
       <div class="url">
@@ -235,10 +273,16 @@
 
 <style>
   .builder {
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
     padding: 2rem 1.5rem 3rem;
     background: radial-gradient(circle at top, #1c2029, #0d0f14);
     color: #f5f7fa;
+  }
+
+  .size-row span {
+    align-self: center;
+    color: #8b94a3;
   }
 
   header {
@@ -385,10 +429,15 @@
     gap: 0.75rem;
   }
 
+  .stage-frame {
+    display: flex;
+    justify-content: center;
+  }
+
   .stage {
     position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
+    height: 68vh;
+    max-width: 100%;
     border-radius: 12px;
     border: 1px solid #262b36;
     overflow: hidden;

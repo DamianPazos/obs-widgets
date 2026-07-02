@@ -25,7 +25,20 @@ export interface SceneInstance {
 
 export interface Scene {
   instances: SceneInstance[];
+  /** Tamaño del lienzo (px), para el aspecto del builder / la salida de OBS. */
+  canvas?: { w: number; h: number };
 }
+
+export const DEFAULT_CANVAS = { w: 1920, h: 1080 };
+
+/** Presets comunes de tamaño de pantalla/lienzo. */
+export const CANVAS_PRESETS = [
+  { label: '1920×1080 · 16:9 (Full HD)', w: 1920, h: 1080 },
+  { label: '2560×1440 · 16:9 (1440p)', w: 2560, h: 1440 },
+  { label: '1280×720 · 16:9 (HD)', w: 1280, h: 720 },
+  { label: '1080×1920 · 9:16 (vertical)', w: 1080, h: 1920 },
+  { label: '3440×1440 · 21:9 (ultrawide)', w: 3440, h: 1440 },
+];
 
 function toBase64Url(str: string): string {
   const bytes = new TextEncoder().encode(str);
