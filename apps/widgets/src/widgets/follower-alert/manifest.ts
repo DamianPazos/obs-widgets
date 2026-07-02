@@ -11,7 +11,13 @@ export const manifest: WidgetManifest = {
   params: [
     { name: 'channel', label: 'Canal de Kick', type: 'text', default: 'demo' },
     { name: 'title', label: 'Texto', type: 'text', default: '¡Nuevo seguidor!' },
-    { name: 'icon', label: 'Ícono (emoji o URL de imagen)', type: 'text', default: '💚' },
+    {
+      name: 'icon',
+      label: 'Ícono (emoji o imagen)',
+      type: 'text',
+      default: '💚',
+      withUpload: true,
+    },
     { name: 'accent', label: 'Color', type: 'color', default: '53fc18' },
     {
       name: 'duration',

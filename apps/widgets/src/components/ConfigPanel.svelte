@@ -10,6 +10,7 @@
     type Point,
   } from '../lib/layout';
   import { fileToDataUrl } from '../lib/image';
+  import { isImageUrl } from '../lib/style';
 
   const id = new URLSearchParams(window.location.search).get('config') ?? '';
   const widget = getWidget(id);
@@ -272,6 +273,45 @@
                     >
                       Quitar imagen
                     </button>
+                  {/if}
+                </div>
+              {:else if param.withUpload}
+                <div class="image-field">
+                  {#if isImageUrl(values[param.name] ?? '')}
+                    <img class="thumb" src={values[param.name]} alt="vista previa" />
+                    <div class="upload-row">
+                      <label class="upload-btn">
+                        Cambiar imagen
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onchange={(e) => pickImage(param.name, e.currentTarget)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="clear-img"
+                        onclick={() => (values[param.name] = String(param.default))}
+                      >
+                        Volver a emoji
+                      </button>
+                    </div>
+                  {:else}
+                    <div class="upload-row">
+                      <input
+                        type="text"
+                        value={values[param.name]}
+                        oninput={(e) => (values[param.name] = e.currentTarget.value)}
+                      />
+                      <label class="upload-btn">
+                        📁 Subir imagen
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onchange={(e) => pickImage(param.name, e.currentTarget)}
+                        />
+                      </label>
+                    </div>
                   {/if}
                 </div>
               {:else}
@@ -542,6 +582,37 @@
     padding: 0.3rem 0.7rem;
     cursor: pointer;
     font-size: 0.8rem;
+  }
+
+  .upload-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .upload-row input[type='text'] {
+    flex: 1;
+    min-width: 4rem;
+  }
+
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #171a21;
+    color: #dfe4ea;
+    border: 1px solid #2a2f3a;
+    border-radius: 8px;
+    padding: 0.45rem 0.7rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .upload-btn input[type='file'] {
+    display: none;
   }
 
   .reset {

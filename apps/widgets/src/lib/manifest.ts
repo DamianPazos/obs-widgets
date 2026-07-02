@@ -38,6 +38,8 @@ export interface WidgetParam {
   min?: number;
   max?: number;
   step?: number;
+  /** Para `type: 'text'`: además del texto (emoji), permite subir una imagen. */
+  withUpload?: boolean;
 }
 
 /**
