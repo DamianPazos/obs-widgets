@@ -5,15 +5,7 @@
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
   import { isImageUrl, themeStyle } from '../../lib/style';
-  import {
-    encodeLayout,
-    getLayoutParam,
-    isEditMode,
-    LAYOUT_MESSAGE,
-    parseLayout,
-    type Layout,
-    type Point,
-  } from '../../lib/layout';
+  import { createLayoutController } from '../../lib/editor.svelte';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
@@ -25,24 +17,11 @@
   const width = Number(getParam('width', '360')) || 360;
   const height = Number(getParam('height', '150')) || 150;
 
-  const DEFAULTS = {
+  const ed = createLayoutController({
     icon: { x: 18, y: 50 },
     label: { x: 60, y: 36 },
     time: { x: 60, y: 64 },
-  };
-
-  const edit = isEditMode();
-  let layout = $state(parseLayout(getLayoutParam(), DEFAULTS));
-
-  function move(id: string, p: Point): void {
-    (layout as Layout)[id] = p;
-  }
-  function commit(): void {
-    window.parent.postMessage(
-      { type: LAYOUT_MESSAGE, value: encodeLayout(layout) },
-      window.location.origin,
-    );
-  }
+  });
 
   let live = $state(false);
   let startedAtMs = $state<number | null>(null);
@@ -70,7 +49,7 @@
   onMount(() => {
     const tick = setInterval(() => (now = Date.now()), 1000);
 
-    if (edit || isPreview) {
+    if (ed.edit || isPreview) {
       status = 'open';
       live = true;
       startedAtMs = Date.now() - 3_725_000; // ~1h 02m 05s de ejemplo
@@ -99,27 +78,57 @@
     <div
       class="canvas"
       class:offline={!live}
-      class:edit
+      class:edit={ed.edit}
       style="width: {width}px; height: {height}px"
     >
-      <Positionable id="icon" pos={layout.icon} {edit} onmove={move} oncommit={commit}>
+      {#if ed.grid}
+        <div class="grid" style="background-size: {ed.snap || 5}% {ed.snap || 5}%"></div>
+      {/if}
+      <Positionable
+        id="icon"
+        pos={ed.layout.icon}
+        edit={ed.edit}
+        selected={ed.selected === 'icon'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         {#if isImageUrl(icon)}
           <img class="icon-img" src={icon} alt="" />
         {:else}
           <span class="icon">{icon}</span>
         {/if}
       </Positionable>
-      <Positionable id="label" pos={layout.label} {edit} onmove={move} oncommit={commit}>
+      <Positionable
+        id="label"
+        pos={ed.layout.label}
+        edit={ed.edit}
+        selected={ed.selected === 'label'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         <span class="label">{live ? label : 'OFFLINE'}</span>
       </Positionable>
-      <Positionable id="time" pos={layout.time} {edit} onmove={move} oncommit={commit}>
+      <Positionable
+        id="time"
+        pos={ed.layout.time}
+        edit={ed.edit}
+        selected={ed.selected === 'time'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         <strong class="time">{fmt(elapsed)}</strong>
       </Positionable>
     </div>
   {/if}
 </div>
 
-{#if !isPreview && !edit && status !== 'open'}
+{#if !isPreview && !ed.edit && status !== 'open'}
   <div class="conn" title="Estado de la conexión con el servidor">● {status}</div>
 {/if}
 
@@ -151,6 +160,15 @@
   .canvas.edit {
     outline: 2px solid rgba(83, 252, 24, 0.4);
     outline-offset: 2px;
+  }
+
+  .grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
   }
 
   .icon {

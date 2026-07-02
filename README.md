@@ -127,9 +127,13 @@ colores de texto y fondo + opacidad, e imágenes** (fondo del widget, o un ícon
 estilos comunes se agregan a un widget con `styleParams(...)` y se aplican por variables CSS
 (`themeStyle()`), manteniendo el look por defecto salvo lo que toques.
 
-Además podés **arrastrar los objetos** (ícono, textos, timer) dentro de la vista previa para
-reubicarlos donde quieras: cada widget es un **lienzo** y las posiciones quedan guardadas en la
-URL (`layout=`). Si querés que floten libres, poné el borde en 0 y la opacidad de fondo en 0.
+Además podés **reubicar los objetos** (ícono, textos, timer) dentro de la vista previa: cada
+widget es un **lienzo** y las posiciones quedan guardadas en la URL (`layout=`). En el editor:
+
+- **Arrastrá** cualquier objeto para moverlo, con **cuadrícula** e **imán (snap)** opcionales para
+  alinear prolijo.
+- **Clickeá** un objeto y a la izquierda aparecen sus opciones (posición X/Y y tamaño).
+- Para que **floten libres** (sin caja), poné el borde en 0 y la opacidad de fondo en 0.
 
 ---
 

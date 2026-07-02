@@ -1,22 +1,27 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { clamp, type Point } from '../lib/layout';
+  import { clamp, snap as snapTo, type Point } from '../lib/layout';
 
   let {
     id,
     pos,
     edit = false,
+    selected = false,
+    snap = 0,
     onmove,
     oncommit,
+    onselect,
     children,
   }: {
     id: string;
     pos: Point;
     edit?: boolean;
-    /** Se llama en vivo mientras se arrastra. */
+    selected?: boolean;
+    /** Paso de la grilla en % (0 = sin snap). */
+    snap?: number;
     onmove?: (id: string, p: Point) => void;
-    /** Se llama al soltar (para persistir/avisar). */
     oncommit?: () => void;
+    onselect?: (id: string) => void;
     children: Snippet;
   } = $props();
 
@@ -26,14 +31,15 @@
     if (!edit) return;
     event.preventDefault();
     event.stopPropagation();
+    onselect?.(id);
 
     const parent = (el.offsetParent as HTMLElement | null) ?? el.parentElement;
     if (!parent) return;
 
     const onPointerMove = (ev: PointerEvent): void => {
       const rect = parent.getBoundingClientRect();
-      const x = clamp(((ev.clientX - rect.left) / rect.width) * 100);
-      const y = clamp(((ev.clientY - rect.top) / rect.height) * 100);
+      const x = snapTo(clamp(((ev.clientX - rect.left) / rect.width) * 100), snap);
+      const y = snapTo(clamp(((ev.clientY - rect.top) / rect.height) * 100), snap);
       onmove?.(id, { x, y });
     };
 
@@ -53,7 +59,8 @@
   bind:this={el}
   class="positionable"
   class:edit
-  style="left: {pos.x}%; top: {pos.y}%"
+  class:selected
+  style="left: {pos.x}%; top: {pos.y}%; transform: translate(-50%, -50%) scale({pos.s ?? 1})"
   onpointerdown={handleDown}
 >
   {@render children()}
@@ -62,15 +69,20 @@
 <style>
   .positionable {
     position: absolute;
-    transform: translate(-50%, -50%);
     white-space: nowrap;
   }
 
   .positionable.edit {
     cursor: move;
     touch-action: none;
-    outline: 1px dashed rgba(255, 255, 255, 0.55);
+    outline: 1px dashed rgba(255, 255, 255, 0.5);
     outline-offset: 4px;
     border-radius: 4px;
+  }
+
+  .positionable.edit.selected {
+    outline: 2px solid var(--accent, #53fc18);
+    outline-offset: 5px;
+    box-shadow: 0 0 0 4px rgba(83, 252, 24, 0.15);
   }
 </style>

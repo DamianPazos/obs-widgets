@@ -57,5 +57,10 @@ export const manifest: WidgetManifest = {
       'bgImage',
     ),
   ],
+  elements: [
+    { id: 'icon', label: 'Ícono' },
+    { id: 'label', label: 'Etiqueta' },
+    { id: 'time', label: 'Timer' },
+  ],
   load: () => import('./StreamUptime.svelte'),
 };

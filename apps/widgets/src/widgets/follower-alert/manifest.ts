@@ -49,5 +49,10 @@ export const manifest: WidgetManifest = {
     },
     ...styleParams('scale', 'font', 'fontWeight', 'fg', 'radius'),
   ],
+  elements: [
+    { id: 'icon', label: 'Ícono' },
+    { id: 'label', label: 'Texto' },
+    { id: 'name', label: 'Nombre' },
+  ],
   load: () => import('./FollowerAlert.svelte'),
 };

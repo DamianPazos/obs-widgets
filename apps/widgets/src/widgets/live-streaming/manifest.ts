@@ -43,5 +43,11 @@ export const manifest: WidgetManifest = {
       'bgImage',
     ),
   ],
+  elements: [
+    { id: 'dot', label: 'Punto en vivo' },
+    { id: 'title', label: 'Título' },
+    { id: 'subtitle', label: 'Subtítulo' },
+    { id: 'clock', label: 'Reloj' },
+  ],
   load: () => import('./LiveStreaming.svelte'),
 };

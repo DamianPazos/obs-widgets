@@ -180,7 +180,8 @@ Ampliar el catálogo.
 - ⬜ Tests e2e de un widget con Playwright.
 - ✅ Panel de configuración visual: params tipados + formulario auto-generado + preview en vivo + URL lista (`/?config=<id>`).
 - ✅ Estilos ricos por widget: tamaño, tipografía, bordes, colores, fondo e imágenes (variables CSS).
-- ✅ Editor de posición: arrastrar y reubicar los objetos dentro de cada widget (lienzo + `?edit=1`).
+- ✅ Editor de posición: arrastrar objetos dentro de cada widget (lienzo + `?edit=1`), con
+  cuadrícula + imán (snap), y panel contextual al seleccionar un objeto (posición X/Y + tamaño).
 - ⬜ Temas/skins reutilizables entre widgets.
 - ⬜ Rate limiting y healthchecks en el servidor.
 - ⬜ Sonidos en las alertas.

@@ -3,15 +3,7 @@
   import Positionable from '../../components/Positionable.svelte';
   import { getParam } from '../../lib/config';
   import { themeStyle } from '../../lib/style';
-  import {
-    encodeLayout,
-    getLayoutParam,
-    isEditMode,
-    LAYOUT_MESSAGE,
-    parseLayout,
-    type Layout,
-    type Point,
-  } from '../../lib/layout';
+  import { createLayoutController } from '../../lib/editor.svelte';
 
   const title = getParam('title', 'EN VIVO');
   const subtitle = getParam('subtitle', 'Bienvenidos al stream');
@@ -20,25 +12,12 @@
   const width = Number(getParam('width', '460')) || 460;
   const height = Number(getParam('height', '110')) || 110;
 
-  const DEFAULTS = {
+  const ed = createLayoutController({
     dot: { x: 8, y: 50 },
     title: { x: 37, y: 40 },
     subtitle: { x: 37, y: 66 },
     clock: { x: 88, y: 50 },
-  };
-
-  const edit = isEditMode();
-  let layout = $state(parseLayout(getLayoutParam(), DEFAULTS));
-
-  function move(id: string, p: Point): void {
-    (layout as Layout)[id] = p;
-  }
-  function commit(): void {
-    window.parent.postMessage(
-      { type: LAYOUT_MESSAGE, value: encodeLayout(layout) },
-      window.location.origin,
-    );
-  }
+  });
 
   let now = $state(new Date());
   onMount(() => {
@@ -52,18 +31,57 @@
 </script>
 
 <div class="stage" style="--accent: {accent}; {themeStyle()}">
-  <div class="canvas" class:edit style="width: {width}px; height: {height}px">
-    <Positionable id="dot" pos={layout.dot} {edit} onmove={move} oncommit={commit}>
+  <div class="canvas" class:edit={ed.edit} style="width: {width}px; height: {height}px">
+    {#if ed.grid}
+      <div class="grid" style="background-size: {ed.snap || 5}% {ed.snap || 5}%"></div>
+    {/if}
+    <Positionable
+      id="dot"
+      pos={ed.layout.dot}
+      edit={ed.edit}
+      selected={ed.selected === 'dot'}
+      snap={ed.snap}
+      onmove={ed.move}
+      oncommit={ed.commit}
+      onselect={ed.select}
+    >
       <span class="dot"></span>
     </Positionable>
-    <Positionable id="title" pos={layout.title} {edit} onmove={move} oncommit={commit}>
+    <Positionable
+      id="title"
+      pos={ed.layout.title}
+      edit={ed.edit}
+      selected={ed.selected === 'title'}
+      snap={ed.snap}
+      onmove={ed.move}
+      oncommit={ed.commit}
+      onselect={ed.select}
+    >
       <strong class="title">{title}</strong>
     </Positionable>
-    <Positionable id="subtitle" pos={layout.subtitle} {edit} onmove={move} oncommit={commit}>
+    <Positionable
+      id="subtitle"
+      pos={ed.layout.subtitle}
+      edit={ed.edit}
+      selected={ed.selected === 'subtitle'}
+      snap={ed.snap}
+      onmove={ed.move}
+      oncommit={ed.commit}
+      onselect={ed.select}
+    >
       <span class="subtitle">{subtitle}</span>
     </Positionable>
     {#if showClock}
-      <Positionable id="clock" pos={layout.clock} {edit} onmove={move} oncommit={commit}>
+      <Positionable
+        id="clock"
+        pos={ed.layout.clock}
+        edit={ed.edit}
+        selected={ed.selected === 'clock'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         <time>{clock}</time>
       </Positionable>
     {/if}
@@ -94,6 +112,15 @@
   .canvas.edit {
     outline: 2px solid rgba(83, 252, 24, 0.4);
     outline-offset: 2px;
+  }
+
+  .grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
   }
 
   .dot {

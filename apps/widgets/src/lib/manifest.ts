@@ -57,6 +57,8 @@ export interface WidgetManifest {
   events?: WidgetEventType[];
   /** Parámetros configurables por query string. */
   params?: WidgetParam[];
+  /** Objetos posicionables del widget (para el editor / panel contextual). */
+  elements?: { id: string; label: string }[];
   /** Carga diferida del componente Svelte (code-splitting por widget). */
   load: () => Promise<{ default: Component }>;
 }

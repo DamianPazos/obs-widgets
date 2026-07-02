@@ -5,15 +5,7 @@
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
   import { isImageUrl, themeStyle } from '../../lib/style';
-  import {
-    encodeLayout,
-    getLayoutParam,
-    isEditMode,
-    LAYOUT_MESSAGE,
-    parseLayout,
-    type Layout,
-    type Point,
-  } from '../../lib/layout';
+  import { createLayoutController } from '../../lib/editor.svelte';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
@@ -25,24 +17,11 @@
   const width = Number(getParam('width', '460')) || 460;
   const height = Number(getParam('height', '170')) || 170;
 
-  const DEFAULTS = {
+  const ed = createLayoutController({
     icon: { x: 16, y: 50 },
     label: { x: 58, y: 36 },
     name: { x: 58, y: 62 },
-  };
-
-  const edit = isEditMode();
-  let layout = $state(parseLayout(getLayoutParam(), DEFAULTS));
-
-  function move(id: string, p: Point): void {
-    (layout as Layout)[id] = p;
-  }
-  function commit(): void {
-    window.parent.postMessage(
-      { type: LAYOUT_MESSAGE, value: encodeLayout(layout) },
-      window.location.origin,
-    );
-  }
+  });
 
   let current = $state<FollowerNewEvent | null>(null);
   let status = $state<ConnectionStatus>('connecting');
@@ -72,8 +51,7 @@
   }
 
   onMount(() => {
-    if (edit) {
-      // En edición mostramos una alerta fija para poder arrastrar los objetos.
+    if (ed.edit) {
       status = 'open';
       current = demoEvent();
       return;
@@ -106,25 +84,55 @@
 
 <div class="stage" style="--accent: {accent}; {themeStyle()}">
   {#if current}
-    <div class="canvas" class:edit style="width: {width}px; height: {height}px">
-      <Positionable id="icon" pos={layout.icon} {edit} onmove={move} oncommit={commit}>
+    <div class="canvas" class:edit={ed.edit} style="width: {width}px; height: {height}px">
+      {#if ed.grid}
+        <div class="grid" style="background-size: {ed.snap || 5}% {ed.snap || 5}%"></div>
+      {/if}
+      <Positionable
+        id="icon"
+        pos={ed.layout.icon}
+        edit={ed.edit}
+        selected={ed.selected === 'icon'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         {#if isImageUrl(icon)}
           <img class="icon-img" src={icon} alt="" />
         {:else}
           <span class="icon">{icon}</span>
         {/if}
       </Positionable>
-      <Positionable id="label" pos={layout.label} {edit} onmove={move} oncommit={commit}>
+      <Positionable
+        id="label"
+        pos={ed.layout.label}
+        edit={ed.edit}
+        selected={ed.selected === 'label'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         <span class="label">{title}</span>
       </Positionable>
-      <Positionable id="name" pos={layout.name} {edit} onmove={move} oncommit={commit}>
+      <Positionable
+        id="name"
+        pos={ed.layout.name}
+        edit={ed.edit}
+        selected={ed.selected === 'name'}
+        snap={ed.snap}
+        onmove={ed.move}
+        oncommit={ed.commit}
+        onselect={ed.select}
+      >
         <strong class="name">{current.payload.username}</strong>
       </Positionable>
     </div>
   {/if}
 </div>
 
-{#if !isPreview && !edit && status !== 'open'}
+{#if !isPreview && !ed.edit && status !== 'open'}
   <div class="conn" title="Estado de la conexión con el servidor">● {status}</div>
 {/if}
 
@@ -148,6 +156,15 @@
   .canvas.edit {
     outline: 2px solid rgba(83, 252, 24, 0.4);
     outline-offset: 2px;
+  }
+
+  .grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
   }
 
   .icon {

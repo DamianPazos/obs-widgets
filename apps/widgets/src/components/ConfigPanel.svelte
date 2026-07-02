@@ -1,11 +1,19 @@
 <script lang="ts">
   import { getWidget } from '../lib/registry';
   import type { WidgetParam } from '../lib/manifest';
-  import { LAYOUT_MESSAGE } from '../lib/layout';
+  import {
+    decodeLayout,
+    encodeLayout,
+    PANEL_MSG,
+    WIDGET_MSG,
+    type Layout,
+    type Point,
+  } from '../lib/layout';
 
   const id = new URLSearchParams(window.location.search).get('config') ?? '';
   const widget = getWidget(id);
   const params: WidgetParam[] = widget?.params ?? [];
+  const elements = widget?.elements ?? [];
 
   function initValues(): Record<string, string> {
     const url = new URLSearchParams(window.location.search);
@@ -20,15 +28,51 @@
   let values = $state<Record<string, string>>(initValues());
   let bg = $state<'oscuro' | 'claro' | 'damero'>('oscuro');
   let copied = $state(false);
-  let layoutValue = $state<string>(new URLSearchParams(window.location.search).get('layout') ?? '');
 
-  // El widget (en el iframe, modo edición) nos avisa el layout nuevo al soltar.
+  // Posiciones de los objetos (editor).
+  let layoutMap = $state<Layout>(
+    decodeLayout(new URLSearchParams(window.location.search).get('layout')),
+  );
+  let selectedId = $state<string | null>(null);
+  let grid = $state(false);
+  let snapStep = $state('0');
+  let iframeEl: HTMLIFrameElement | undefined = $state();
+
+  const layoutValue = $derived(encodeLayout(layoutMap));
+  const selPoint = $derived(
+    selectedId ? (layoutMap[selectedId] ?? ({ x: 50, y: 50 } as Point)) : null,
+  );
+
+  function elementLabel(elId: string): string {
+    return elements.find((e) => e.id === elId)?.label ?? elId;
+  }
+
+  function sendToWidget(message: Record<string, unknown>): void {
+    iframeEl?.contentWindow?.postMessage({ source: PANEL_MSG, ...message }, window.location.origin);
+  }
+  function onIframeLoad(): void {
+    sendToWidget({ type: 'set-layout', value: encodeLayout(layoutMap) });
+    sendToWidget({ type: 'select', id: selectedId });
+  }
+
+  // Mensajes que llegan del widget (iframe) en modo edición.
   $effect(() => {
     function onMessage(event: MessageEvent): void {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { type?: string; value?: string } | null;
-      if (data?.type === LAYOUT_MESSAGE && typeof data.value === 'string') {
-        layoutValue = data.value;
+      const data = event.data as {
+        source?: string;
+        type?: string;
+        value?: string;
+        id?: string;
+        pos?: Point;
+      } | null;
+      if (data?.source !== WIDGET_MSG) return;
+
+      if (data.type === 'layout' && typeof data.value === 'string') {
+        layoutMap = decodeLayout(data.value);
+      } else if (data.type === 'select' && typeof data.id === 'string') {
+        selectedId = data.id;
+        if (data.pos) layoutMap[data.id] = data.pos;
       }
     }
     window.addEventListener('message', onMessage);
@@ -39,14 +83,16 @@
     const usp = new URLSearchParams({ widget: id });
     for (const p of params) {
       const v = values[p.name];
-      // Omitimos vacíos y los que quedaron en su valor por defecto (URL limpia).
       if (v == null || v === '' || v === String(p.default)) continue;
       usp.set(p.name, v);
     }
-    if (layoutValue) usp.set('layout', layoutValue);
     if (preview) {
       if (widget?.mode === 'realtime') usp.set('preview', '1');
-      usp.set('edit', '1'); // habilita el arrastre en la vista previa
+      usp.set('edit', '1');
+      if (grid) usp.set('grid', '1');
+      if (snapStep !== '0') usp.set('snap', snapStep);
+    } else if (layoutValue) {
+      usp.set('layout', layoutValue);
     }
     return `${window.location.origin}/?${usp.toString()}`;
   }
@@ -65,7 +111,22 @@
   }
 
   function resetLayout(): void {
-    layoutValue = '';
+    layoutMap = {};
+    selectedId = null;
+    sendToWidget({ type: 'reset-layout' });
+    sendToWidget({ type: 'select', id: null });
+  }
+
+  function deselect(): void {
+    selectedId = null;
+    sendToWidget({ type: 'select', id: null });
+  }
+
+  function updateSelected(patch: Partial<Point>): void {
+    if (!selectedId) return;
+    const cur = layoutMap[selectedId] ?? { x: 50, y: 50 };
+    layoutMap[selectedId] = { ...cur, ...patch };
+    sendToWidget({ type: 'set-layout', value: encodeLayout(layoutMap) });
   }
 </script>
 
@@ -83,106 +144,164 @@
     </header>
 
     <div class="layout">
-      <form onsubmit={(e) => e.preventDefault()}>
-        {#each params as param (param.name)}
-          <label class="field">
-            <span class="label">{param.label}</span>
-            {#if param.description}<span class="hint">{param.description}</span>{/if}
+      {#if selectedId}
+        <div class="card contextual">
+          <button type="button" class="back-link" onclick={deselect}>← Estilos generales</button>
+          <h3>{elementLabel(selectedId)}</h3>
+          <p class="hint">Posición y tamaño de este objeto (o arrastralo en la vista previa).</p>
 
-            {#if param.type === 'color'}
-              <span class="color-row">
+          <label class="field">
+            <span class="label">Posición X <b>{Math.round(selPoint?.x ?? 50)}%</b></span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={selPoint?.x ?? 50}
+              oninput={(e) => updateSelected({ x: Number(e.currentTarget.value) })}
+            />
+          </label>
+          <label class="field">
+            <span class="label">Posición Y <b>{Math.round(selPoint?.y ?? 50)}%</b></span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={selPoint?.y ?? 50}
+              oninput={(e) => updateSelected({ y: Number(e.currentTarget.value) })}
+            />
+          </label>
+          <label class="field">
+            <span class="label">Tamaño <b>{(selPoint?.s ?? 1).toFixed(1)}×</b></span>
+            <input
+              type="range"
+              min="0.3"
+              max="3"
+              step="0.1"
+              value={selPoint?.s ?? 1}
+              oninput={(e) => updateSelected({ s: Number(e.currentTarget.value) })}
+            />
+          </label>
+        </div>
+      {:else}
+        <form class="card" onsubmit={(e) => e.preventDefault()}>
+          {#each params as param (param.name)}
+            <label class="field">
+              <span class="label">{param.label}</span>
+              {#if param.description}<span class="hint">{param.description}</span>{/if}
+
+              {#if param.type === 'color'}
+                <span class="color-row">
+                  <input
+                    type="color"
+                    value={`#${values[param.name]}`}
+                    oninput={(e) => (values[param.name] = e.currentTarget.value.replace('#', ''))}
+                  />
+                  <input
+                    class="hex"
+                    type="text"
+                    value={values[param.name]}
+                    oninput={(e) => (values[param.name] = e.currentTarget.value.replace('#', ''))}
+                  />
+                </span>
+              {:else if param.type === 'range'}
+                <span class="range-row">
+                  <input
+                    type="range"
+                    min={param.min}
+                    max={param.max}
+                    step={param.step}
+                    value={values[param.name]}
+                    oninput={(e) => (values[param.name] = e.currentTarget.value)}
+                  />
+                  <span class="range-val">{values[param.name]}</span>
+                </span>
+              {:else if param.type === 'number'}
                 <input
-                  type="color"
-                  value={`#${values[param.name]}`}
-                  oninput={(e) => (values[param.name] = e.currentTarget.value.replace('#', ''))}
-                />
-                <input
-                  class="hex"
-                  type="text"
-                  value={values[param.name]}
-                  oninput={(e) => (values[param.name] = e.currentTarget.value.replace('#', ''))}
-                />
-              </span>
-            {:else if param.type === 'range'}
-              <span class="range-row">
-                <input
-                  type="range"
+                  type="number"
                   min={param.min}
                   max={param.max}
                   step={param.step}
                   value={values[param.name]}
                   oninput={(e) => (values[param.name] = e.currentTarget.value)}
                 />
-                <span class="range-val">{values[param.name]}</span>
-              </span>
-            {:else if param.type === 'number'}
-              <input
-                type="number"
-                min={param.min}
-                max={param.max}
-                step={param.step}
-                value={values[param.name]}
-                oninput={(e) => (values[param.name] = e.currentTarget.value)}
-              />
-            {:else if param.type === 'boolean'}
-              <input
-                type="checkbox"
-                checked={values[param.name] === 'true'}
-                onchange={(e) => (values[param.name] = e.currentTarget.checked ? 'true' : 'false')}
-              />
-            {:else if param.type === 'select'}
-              <select
-                value={values[param.name]}
-                onchange={(e) => (values[param.name] = e.currentTarget.value)}
-              >
-                {#each param.options ?? [] as opt (opt.value)}
-                  <option value={opt.value}>{opt.label}</option>
-                {/each}
-              </select>
-            {:else if param.type === 'image'}
-              <input
-                type="text"
-                placeholder="https://…"
-                value={values[param.name]}
-                oninput={(e) => (values[param.name] = e.currentTarget.value)}
-              />
-            {:else}
-              <input
-                type="text"
-                value={values[param.name]}
-                oninput={(e) => (values[param.name] = e.currentTarget.value)}
-              />
-            {/if}
-          </label>
-        {/each}
+              {:else if param.type === 'boolean'}
+                <input
+                  type="checkbox"
+                  checked={values[param.name] === 'true'}
+                  onchange={(e) =>
+                    (values[param.name] = e.currentTarget.checked ? 'true' : 'false')}
+                />
+              {:else if param.type === 'select'}
+                <select
+                  value={values[param.name]}
+                  onchange={(e) => (values[param.name] = e.currentTarget.value)}
+                >
+                  {#each param.options ?? [] as opt (opt.value)}
+                    <option value={opt.value}>{opt.label}</option>
+                  {/each}
+                </select>
+              {:else if param.type === 'image'}
+                <input
+                  type="text"
+                  placeholder="https://…"
+                  value={values[param.name]}
+                  oninput={(e) => (values[param.name] = e.currentTarget.value)}
+                />
+              {:else}
+                <input
+                  type="text"
+                  value={values[param.name]}
+                  oninput={(e) => (values[param.name] = e.currentTarget.value)}
+                />
+              {/if}
+            </label>
+          {/each}
 
-        <button type="button" class="reset" onclick={reset}>Restablecer</button>
-      </form>
+          <button type="button" class="reset" onclick={reset}>Restablecer estilos</button>
+        </form>
+      {/if}
 
       <section class="preview-pane">
         <div class="toolbar">
-          <span>Vista previa</span>
-          <div class="bg-toggle">
-            <button class:active={bg === 'oscuro'} onclick={() => (bg = 'oscuro')}>Oscuro</button>
-            <button class:active={bg === 'claro'} onclick={() => (bg = 'claro')}>Claro</button>
-            <button class:active={bg === 'damero'} onclick={() => (bg = 'damero')}>Damero</button>
+          <span>Editor</span>
+          <div class="tools">
+            <label class="chk">
+              <input
+                type="checkbox"
+                checked={grid}
+                onchange={(e) => (grid = e.currentTarget.checked)}
+              />
+              Cuadrícula
+            </label>
+            <select value={snapStep} onchange={(e) => (snapStep = e.currentTarget.value)}>
+              <option value="0">Sin imán</option>
+              <option value="2.5">Imán fino</option>
+              <option value="5">Imán medio</option>
+              <option value="10">Imán grueso</option>
+            </select>
+            <div class="bg-toggle">
+              <button class:active={bg === 'oscuro'} onclick={() => (bg = 'oscuro')}>Oscuro</button>
+              <button class:active={bg === 'claro'} onclick={() => (bg = 'claro')}>Claro</button>
+              <button class:active={bg === 'damero'} onclick={() => (bg = 'damero')}>Damero</button>
+            </div>
           </div>
         </div>
 
         <div class="preview {bg}">
-          <iframe title="Vista previa del widget" src={previewUrl}></iframe>
+          <iframe
+            title="Vista previa del widget"
+            src={previewUrl}
+            bind:this={iframeEl}
+            onload={onIframeLoad}
+          ></iframe>
         </div>
 
         <div class="editor-hint">
-          <span>✋ Arrastrá los objetos en la vista previa para reubicarlos.</span>
+          <span>👆 Clickeá un objeto para configurarlo · arrastralo para moverlo.</span>
           <button type="button" onclick={resetLayout}>Restablecer posiciones</button>
         </div>
-
-        {#if widget.mode === 'realtime'}
-          <p class="note">
-            La vista previa usa datos de ejemplo. En vivo, se actualiza con cada evento real.
-          </p>
-        {/if}
 
         <div class="url">
           <input readonly value={obsUrl} />
@@ -249,7 +368,7 @@
     }
   }
 
-  form {
+  .card {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -257,6 +376,21 @@
     border: 1px solid #262b36;
     border-radius: 12px;
     padding: 1.25rem;
+  }
+
+  .contextual h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .back-link {
+    align-self: flex-start;
+    background: transparent;
+    border: none;
+    color: #53fc18;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.85rem;
   }
 
   .field {
@@ -270,9 +404,16 @@
     font-weight: 600;
   }
 
-  .field .hint {
+  .field .label b {
+    color: #53fc18;
+    font-weight: 600;
+  }
+
+  .field .hint,
+  .hint {
     font-size: 0.75rem;
     color: #8b94a3;
+    margin: 0;
   }
 
   input[type='text'],
@@ -284,6 +425,10 @@
     border-radius: 8px;
     padding: 0.5rem 0.6rem;
     font-size: 0.9rem;
+  }
+
+  input[type='range'] {
+    accent-color: #53fc18;
   }
 
   input[type='checkbox'] {
@@ -321,7 +466,6 @@
 
   .range-row input[type='range'] {
     flex: 1;
-    accent-color: #53fc18;
   }
 
   .range-val {
@@ -352,8 +496,35 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
     color: #aeb6c2;
     font-size: 0.85rem;
+  }
+
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+  }
+
+  .chk input {
+    width: 1rem;
+    height: 1rem;
+    align-self: auto;
+  }
+
+  .tools select {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.8rem;
   }
 
   .bg-toggle {
@@ -385,7 +556,7 @@
   .preview iframe {
     display: block;
     width: 100%;
-    height: 420px;
+    height: 440px;
     border: 0;
   }
 
@@ -410,12 +581,6 @@
       0 12px,
       12px -12px,
       -12px 0;
-  }
-
-  .note {
-    margin: 0;
-    font-size: 0.8rem;
-    color: #8b94a3;
   }
 
   .editor-hint {
