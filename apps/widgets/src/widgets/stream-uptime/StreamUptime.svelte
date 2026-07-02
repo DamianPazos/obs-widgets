@@ -1,9 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { StreamStatusEvent } from '@obs-widgets/core';
+  import Positionable from '../../components/Positionable.svelte';
   import { connectEvents, type ConnectionStatus } from '../../lib/event-stream';
   import { getChannel, getParam, getServerUrl } from '../../lib/config';
   import { isImageUrl, themeStyle } from '../../lib/style';
+  import {
+    encodeLayout,
+    getLayoutParam,
+    isEditMode,
+    LAYOUT_MESSAGE,
+    parseLayout,
+    type Layout,
+    type Point,
+  } from '../../lib/layout';
 
   const channel = getChannel();
   const serverUrl = getServerUrl();
@@ -12,6 +22,27 @@
   const accent = `#${getParam('accent', '53fc18')}`;
   const hideOffline = getParam('hideOffline', 'true') !== 'false';
   const isPreview = getParam('preview') === '1';
+  const width = Number(getParam('width', '360')) || 360;
+  const height = Number(getParam('height', '150')) || 150;
+
+  const DEFAULTS = {
+    icon: { x: 18, y: 50 },
+    label: { x: 60, y: 36 },
+    time: { x: 60, y: 64 },
+  };
+
+  const edit = isEditMode();
+  let layout = $state(parseLayout(getLayoutParam(), DEFAULTS));
+
+  function move(id: string, p: Point): void {
+    (layout as Layout)[id] = p;
+  }
+  function commit(): void {
+    window.parent.postMessage(
+      { type: LAYOUT_MESSAGE, value: encodeLayout(layout) },
+      window.location.origin,
+    );
+  }
 
   let live = $state(false);
   let startedAtMs = $state<number | null>(null);
@@ -39,7 +70,7 @@
   onMount(() => {
     const tick = setInterval(() => (now = Date.now()), 1000);
 
-    if (isPreview) {
+    if (edit || isPreview) {
       status = 'open';
       live = true;
       startedAtMs = Date.now() - 3_725_000; // ~1h 02m 05s de ejemplo
@@ -63,32 +94,45 @@
   });
 </script>
 
-{#if visible}
-  <div class="uptime" class:offline={!live} style="--accent: {accent}; {themeStyle()}">
-    {#if isImageUrl(icon)}
-      <img class="icon-img" src={icon} alt="" />
-    {:else}
-      <span class="icon">{icon}</span>
-    {/if}
-    <div class="body">
-      <span class="label">{live ? label : 'OFFLINE'}</span>
-      <strong class="time">{fmt(elapsed)}</strong>
+<div class="stage" style="--accent: {accent}; {themeStyle()}">
+  {#if visible}
+    <div
+      class="canvas"
+      class:offline={!live}
+      class:edit
+      style="width: {width}px; height: {height}px"
+    >
+      <Positionable id="icon" pos={layout.icon} {edit} onmove={move} oncommit={commit}>
+        {#if isImageUrl(icon)}
+          <img class="icon-img" src={icon} alt="" />
+        {:else}
+          <span class="icon">{icon}</span>
+        {/if}
+      </Positionable>
+      <Positionable id="label" pos={layout.label} {edit} onmove={move} oncommit={commit}>
+        <span class="label">{live ? label : 'OFFLINE'}</span>
+      </Positionable>
+      <Positionable id="time" pos={layout.time} {edit} onmove={move} oncommit={commit}>
+        <strong class="time">{fmt(elapsed)}</strong>
+      </Positionable>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
 
-{#if !isPreview && status !== 'open'}
+{#if !isPreview && !edit && status !== 'open'}
   <div class="conn" title="Estado de la conexión con el servidor">● {status}</div>
 {/if}
 
 <style>
-  .uptime {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.7rem 1.15rem;
+  .stage {
     color: var(--w-fg, #fff);
     font-family: var(--w-font, inherit);
+    transform: scale(var(--w-scale, 1));
+    transform-origin: center;
+  }
+
+  .canvas {
+    position: relative;
     background-color: var(--w-bg, rgba(13, 15, 20, 0.85));
     background-image: var(--w-bg-image, none);
     background-size: cover;
@@ -97,13 +141,16 @@
     border-radius: var(--w-radius, 12px);
     backdrop-filter: blur(6px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-    transform: scale(var(--w-scale, 1));
-    transform-origin: center;
   }
 
-  .uptime.offline {
+  .canvas.offline {
     border-color: #4b515e;
     opacity: 0.85;
+  }
+
+  .canvas.edit {
+    outline: 2px solid rgba(83, 252, 24, 0.4);
+    outline-offset: 2px;
   }
 
   .icon {
@@ -118,15 +165,9 @@
     border-radius: 4px;
   }
 
-  .uptime:not(.offline) .icon,
-  .uptime:not(.offline) .icon-img {
+  .canvas:not(.offline) .icon,
+  .canvas:not(.offline) .icon-img {
     animation: blink 1.6s ease-in-out infinite;
-  }
-
-  .body {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
   }
 
   .label {

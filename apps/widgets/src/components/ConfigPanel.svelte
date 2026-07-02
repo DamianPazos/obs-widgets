@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getWidget } from '../lib/registry';
   import type { WidgetParam } from '../lib/manifest';
+  import { LAYOUT_MESSAGE } from '../lib/layout';
 
   const id = new URLSearchParams(window.location.search).get('config') ?? '';
   const widget = getWidget(id);
@@ -19,6 +20,20 @@
   let values = $state<Record<string, string>>(initValues());
   let bg = $state<'oscuro' | 'claro' | 'damero'>('oscuro');
   let copied = $state(false);
+  let layoutValue = $state<string>(new URLSearchParams(window.location.search).get('layout') ?? '');
+
+  // El widget (en el iframe, modo edición) nos avisa el layout nuevo al soltar.
+  $effect(() => {
+    function onMessage(event: MessageEvent): void {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string; value?: string } | null;
+      if (data?.type === LAYOUT_MESSAGE && typeof data.value === 'string') {
+        layoutValue = data.value;
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  });
 
   function buildUrl(preview: boolean): string {
     const usp = new URLSearchParams({ widget: id });
@@ -28,7 +43,11 @@
       if (v == null || v === '' || v === String(p.default)) continue;
       usp.set(p.name, v);
     }
-    if (preview && widget?.mode === 'realtime') usp.set('preview', '1');
+    if (layoutValue) usp.set('layout', layoutValue);
+    if (preview) {
+      if (widget?.mode === 'realtime') usp.set('preview', '1');
+      usp.set('edit', '1'); // habilita el arrastre en la vista previa
+    }
     return `${window.location.origin}/?${usp.toString()}`;
   }
 
@@ -43,6 +62,10 @@
 
   function reset(): void {
     values = initValues();
+  }
+
+  function resetLayout(): void {
+    layoutValue = '';
   }
 </script>
 
@@ -150,10 +173,14 @@
           <iframe title="Vista previa del widget" src={previewUrl}></iframe>
         </div>
 
+        <div class="editor-hint">
+          <span>✋ Arrastrá los objetos en la vista previa para reubicarlos.</span>
+          <button type="button" onclick={resetLayout}>Restablecer posiciones</button>
+        </div>
+
         {#if widget.mode === 'realtime'}
           <p class="note">
-            La vista previa usa datos de ejemplo en loop. En vivo, la alerta salta con cada evento
-            real.
+            La vista previa usa datos de ejemplo. En vivo, se actualiza con cada evento real.
           </p>
         {/if}
 
@@ -389,6 +416,25 @@
     margin: 0;
     font-size: 0.8rem;
     color: #8b94a3;
+  }
+
+  .editor-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #aeb6c2;
+  }
+
+  .editor-hint button {
+    background: #171a21;
+    border: 1px solid #2a2f3a;
+    color: #aeb6c2;
+    border-radius: 8px;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    white-space: nowrap;
   }
 
   .url {
