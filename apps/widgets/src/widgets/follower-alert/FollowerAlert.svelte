@@ -65,30 +65,21 @@
   });
 </script>
 
-<div class="stage">
-  {#if current}
-    <div class="alert" style="--accent: {accent}">
-      <div class="icon">{icon}</div>
-      <div class="body">
-        <span class="label">{title}</span>
-        <strong class="name">{current.payload.username}</strong>
-      </div>
+{#if current}
+  <div class="alert" style="--accent: {accent}">
+    <div class="icon">{icon}</div>
+    <div class="body">
+      <span class="label">{title}</span>
+      <strong class="name">{current.payload.username}</strong>
     </div>
-  {/if}
-</div>
+  </div>
+{/if}
 
 {#if status !== 'open'}
   <div class="status" title="Estado de la conexión con el servidor">● {status}</div>
 {/if}
 
 <style>
-  .stage {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-  }
-
   .alert {
     display: flex;
     align-items: center;

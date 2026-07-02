@@ -34,7 +34,6 @@
     display: inline-flex;
     align-items: center;
     gap: 0.9rem;
-    margin: 1.25rem;
     padding: 0.75rem 1.25rem;
     background: rgba(13, 15, 20, 0.85);
     border: 1px solid var(--accent);

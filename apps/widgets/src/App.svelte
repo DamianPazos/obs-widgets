@@ -21,11 +21,23 @@
 {:else}
   {#await widget.load() then mod}
     {@const Widget = mod.default}
-    <Widget />
+    <div class="widget-host">
+      <Widget />
+    </div>
   {/await}
 {/if}
 
 <style>
+  /* Centra el contenido de CUALQUIER widget en el canvas del Browser Source.
+     Así en OBS movés/redimensionás la fuente y el widget queda donde lo pongas. */
+  .widget-host {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .error {
     display: flex;
     flex-direction: column;
