@@ -1,26 +1,26 @@
 /**
- * Convierte un archivo de imagen en una data URL, reescalando si es grande.
+ * Convierte un archivo de imagen en una data URL comprimida.
  *
  * Los widgets corren en OBS cargando una URL (sin servidor), así que la imagen
- * se embebe como data URL. Para que la URL no quede enorme, se reescala a
- * `maxDim` px del lado más largo y se exporta en WebP (conserva transparencia).
+ * se embebe como data URL dentro de la URL del widget. Para que esa URL no se
+ * dispare (y rompa la navegación), SIEMPRE reescalamos a `maxDim` px y
+ * recomprimimos en WebP (conserva transparencia).
  */
-export async function fileToDataUrl(file: File, maxDim = 1000): Promise<string> {
+export async function fileToDataUrl(file: File, maxDim = 800): Promise<string> {
   const original = await readAsDataUrl(file);
   const img = await loadImage(original);
 
-  const longest = Math.max(img.width, img.height);
-  const scale = longest > 0 ? Math.min(1, maxDim / longest) : 1;
-  if (scale >= 1) return original; // ya es suficientemente chica
+  const longest = Math.max(img.width, img.height) || 1;
+  const scale = Math.min(1, maxDim / longest);
 
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
   const ctx = canvas.getContext('2d');
   if (!ctx) return original;
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const webp = canvas.toDataURL('image/webp', 0.85);
+  const webp = canvas.toDataURL('image/webp', 0.8);
   return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png');
 }
 

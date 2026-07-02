@@ -131,11 +131,12 @@
     sendToWidget({ type: 'set-layout', value: encodeLayout(layoutMap) });
   }
 
-  async function pickImage(name: string, input: HTMLInputElement): Promise<void> {
+  async function pickImage(param: WidgetParam, input: HTMLInputElement): Promise<void> {
     const file = input.files?.[0];
     if (!file) return;
+    const maxDim = param.type === 'image' ? 900 : 320; // fondo vs. ícono/logo
     try {
-      values[name] = await fileToDataUrl(file);
+      values[param.name] = await fileToDataUrl(file, maxDim);
     } catch {
       /* archivo inválido: se ignora */
     }
@@ -263,7 +264,7 @@
                   <input
                     type="file"
                     accept="image/*"
-                    onchange={(e) => pickImage(param.name, e.currentTarget)}
+                    onchange={(e) => pickImage(param, e.currentTarget)}
                   />
                   {#if values[param.name]}
                     <button
@@ -285,7 +286,7 @@
                         <input
                           type="file"
                           accept="image/*"
-                          onchange={(e) => pickImage(param.name, e.currentTarget)}
+                          onchange={(e) => pickImage(param, e.currentTarget)}
                         />
                       </label>
                       <button
@@ -308,7 +309,7 @@
                         <input
                           type="file"
                           accept="image/*"
-                          onchange={(e) => pickImage(param.name, e.currentTarget)}
+                          onchange={(e) => pickImage(param, e.currentTarget)}
                         />
                       </label>
                     </div>
