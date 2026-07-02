@@ -23,6 +23,10 @@
       (recomendado: 1920×1080, fondo transparente). Usá <strong>Personalizar</strong> para editar colores,
       textos y opciones con vista previa y obtener la URL lista.
     </p>
+    <p class="scene-cta">
+      <a href="?builder">🎬 Constructor de escenas</a> — combiná varios widgets en una sola Browser Source,
+      posicionados y dimensionados a gusto.
+    </p>
   </header>
 
   <ul class="grid">
@@ -95,6 +99,20 @@
     margin: 0;
     color: #aeb6c2;
     line-height: 1.5;
+  }
+
+  .scene-cta {
+    margin-top: 0.75rem;
+  }
+
+  .scene-cta a {
+    color: #53fc18;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .scene-cta a:hover {
+    text-decoration: underline;
   }
 
   .grid {

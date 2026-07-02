@@ -1,15 +1,46 @@
 <script lang="ts">
+  import Builder from './components/Builder.svelte';
   import ConfigPanel from './components/ConfigPanel.svelte';
   import Index from './components/Index.svelte';
+  import SceneView from './components/SceneView.svelte';
   import { getWidget } from './lib/registry';
 
   const params = new URLSearchParams(window.location.search);
-  const id = params.get('widget');
+  const sceneData = params.get('scene');
+  const isBuilder = params.get('builder') != null;
   const configId = params.get('config');
+  const id = params.get('widget');
   const widget = id ? getWidget(id) : undefined;
+
+  // Modo "fit": el widget escala para llenar su contenedor (usado en escenas).
+  const fit = params.get('fit') === '1';
+  let hostEl: HTMLElement | undefined = $state();
+  let innerEl: HTMLElement | undefined = $state();
+
+  $effect(() => {
+    if (!fit || !hostEl || !innerEl) return;
+    const host = hostEl;
+    const inner = innerEl;
+    const apply = () => {
+      const cw = inner.offsetWidth;
+      const ch = inner.offsetHeight;
+      if (!cw || !ch) return;
+      const k = Math.min(host.clientWidth / cw, host.clientHeight / ch);
+      inner.style.transform = `scale(${k})`;
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(host);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  });
 </script>
 
-{#if configId}
+{#if sceneData != null}
+  <SceneView />
+{:else if isBuilder}
+  <Builder />
+{:else if configId}
   <ConfigPanel />
 {:else if !id}
   <Index />
@@ -21,21 +52,33 @@
 {:else}
   {#await widget.load() then mod}
     {@const Widget = mod.default}
-    <div class="widget-host">
-      <Widget />
+    <div class="widget-host" class:fit bind:this={hostEl}>
+      <div class="widget-inner" bind:this={innerEl}>
+        <Widget />
+      </div>
     </div>
   {/await}
 {/if}
 
 <style>
-  /* Centra el contenido de CUALQUIER widget en el canvas del Browser Source.
-     Así en OBS movés/redimensionás la fuente y el widget queda donde lo pongas. */
+  /* Centra el contenido de CUALQUIER widget en el canvas del Browser Source. */
   .widget-host {
     width: 100vw;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+  }
+
+  .widget-inner {
+    display: inline-block;
+    transform-origin: center;
+  }
+
+  .widget-host.fit .widget-inner {
+    /* el $effect ajusta el scale para llenar el contenedor */
+    will-change: transform;
   }
 
   .error {
