@@ -77,6 +77,10 @@ export function createLayoutController<T extends Layout>(defaults: T): LayoutCon
         selected = data.id ?? null;
       }
     });
+
+    // Ya escuchamos: avisamos al panel para que nos mande el estado (layout +
+    // selección) sin carreras al recargar el iframe.
+    post({ type: 'ready' });
   }
 
   return {

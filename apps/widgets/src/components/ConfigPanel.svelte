@@ -70,7 +70,11 @@
       } | null;
       if (data?.source !== WIDGET_MSG) return;
 
-      if (data.type === 'layout' && typeof data.value === 'string') {
+      if (data.type === 'ready') {
+        // El widget (re)cargó y ya escucha: le mandamos el estado actual.
+        sendToWidget({ type: 'set-layout', value: encodeLayout(layoutMap) });
+        sendToWidget({ type: 'select', id: selectedId });
+      } else if (data.type === 'layout' && typeof data.value === 'string') {
         layoutMap = decodeLayout(data.value);
       } else if (data.type === 'select' && typeof data.id === 'string') {
         selectedId = data.id;
