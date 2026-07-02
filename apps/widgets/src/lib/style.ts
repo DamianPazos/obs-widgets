@@ -136,7 +136,7 @@ export function themeStyle(): string {
   return decls.join('; ');
 }
 
-/** True si el valor parece una URL de imagen (para usar un ícono como imagen). */
+/** True si el valor parece una imagen (URL http(s) o data URL). */
 export function isImageUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
+  return /^(https?:\/\/|data:image\/)/i.test(value);
 }

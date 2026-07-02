@@ -123,7 +123,8 @@ partir de los parámetros declarados en el `manifest` de cada widget, así que *
 nuevo obtiene su personalizador gratis**.
 
 Podés ajustar **tamaño/escala, tipografía (familia y grosor), bordes (grosor/color/redondeo),
-colores de texto y fondo + opacidad, e imágenes** (fondo del widget, o un ícono por URL). Los
+colores de texto y fondo + opacidad, e imágenes** (la imagen de fondo se **sube desde un archivo**
+y se embebe reescalada, sin depender de ninguna URL/hosting). Los
 estilos comunes se agregan a un widget con `styleParams(...)` y se aplican por variables CSS
 (`themeStyle()`), manteniendo el look por defecto salvo lo que toques.
 

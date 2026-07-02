@@ -9,6 +9,7 @@
     type Layout,
     type Point,
   } from '../lib/layout';
+  import { fileToDataUrl } from '../lib/image';
 
   const id = new URLSearchParams(window.location.search).get('config') ?? '';
   const widget = getWidget(id);
@@ -128,6 +129,17 @@
     layoutMap[selectedId] = { ...cur, ...patch };
     sendToWidget({ type: 'set-layout', value: encodeLayout(layoutMap) });
   }
+
+  async function pickImage(name: string, input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      values[name] = await fileToDataUrl(file);
+    } catch {
+      /* archivo inválido: se ignora */
+    }
+    input.value = ''; // permite volver a elegir el mismo archivo
+  }
 </script>
 
 {#if !widget}
@@ -243,12 +255,25 @@
                   {/each}
                 </select>
               {:else if param.type === 'image'}
-                <input
-                  type="text"
-                  placeholder="https://…"
-                  value={values[param.name]}
-                  oninput={(e) => (values[param.name] = e.currentTarget.value)}
-                />
+                <div class="image-field">
+                  {#if values[param.name]}
+                    <img class="thumb" src={values[param.name]} alt="vista previa" />
+                  {/if}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onchange={(e) => pickImage(param.name, e.currentTarget)}
+                  />
+                  {#if values[param.name]}
+                    <button
+                      type="button"
+                      class="clear-img"
+                      onclick={() => (values[param.name] = '')}
+                    >
+                      Quitar imagen
+                    </button>
+                  {/if}
+                </div>
               {:else}
                 <input
                   type="text"
@@ -474,6 +499,49 @@
     font-variant-numeric: tabular-nums;
     color: #aeb6c2;
     font-size: 0.85rem;
+  }
+
+  .image-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .image-field input[type='file'] {
+    font-size: 0.8rem;
+    color: #aeb6c2;
+    max-width: 100%;
+  }
+
+  .thumb {
+    max-width: 100%;
+    max-height: 90px;
+    border-radius: 8px;
+    border: 1px solid #2a2f3a;
+    object-fit: contain;
+    background-color: #14161c;
+    background-image:
+      linear-gradient(45deg, #23272f 25%, transparent 25%),
+      linear-gradient(-45deg, #23272f 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #23272f 75%),
+      linear-gradient(-45deg, transparent 75%, #23272f 75%);
+    background-size: 16px 16px;
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
+  }
+
+  .clear-img {
+    background: transparent;
+    color: #aeb6c2;
+    border: 1px solid #2a2f3a;
+    border-radius: 8px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    font-size: 0.8rem;
   }
 
   .reset {
