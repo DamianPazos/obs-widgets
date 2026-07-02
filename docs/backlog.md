@@ -87,6 +87,17 @@ Alertas conectadas a la plataforma.
 - ✅ Fuente `mock` para probar sin credenciales.
 - ✅ Endpoint `POST /debug/emit`.
 
+### HU-3.4 — Estado del stream (en vivo / offline) ✅
+
+> Como **streamer**, quiero que los widgets sepan solos cuándo estoy en vivo.
+
+**Tareas**
+
+- ✅ Evento de dominio `stream.status` (live + startedAt).
+- ✅ Mapeo de `livestream.status.updated` + lectura del estado inicial vía `/channels`.
+- ✅ El server guarda el último estado y le manda un **snapshot** al widget que se conecta
+  (funciona aunque abras el widget con el stream ya empezado).
+
 ### HU-3.2 — Widget "Alerta de Nuevo Seguidor" ✅
 
 > Como **streamer**, quiero ver una alerta animada cuando alguien me sigue en Kick.
@@ -155,6 +166,7 @@ Ampliar el catálogo.
 
 **Ideas / Historias**
 
+- ✅ HU-5.0 — Tiempo en vivo (uptime): cuenta el tiempo de stream, se prende/apaga solo.
 - ⬜ HU-5.1 — Meta de seguidores (barra de progreso).
 - ⬜ HU-5.2 — Último seguidor / último sub persistente.
 - ⬜ HU-5.3 — Chat overlay.

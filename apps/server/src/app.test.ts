@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MockEventSource } from '@obs-widgets/kick';
 import { buildApp } from './app';
 import { EventBus } from './event-bus';
+import { StreamStateStore } from './stream-state';
 import type { AppConfig } from './config';
 
 const config: AppConfig = {
@@ -20,6 +21,7 @@ describe('server app', () => {
       config,
       bus,
       bundle: { source: new MockEventSource({ channel: 'demo' }) },
+      streamState: new StreamStateStore(),
     });
 
     const res = await app.inject({ method: 'GET', url: '/healthz' });
@@ -35,6 +37,7 @@ describe('server app', () => {
       config,
       bus,
       bundle: { source: new MockEventSource({ channel: 'demo' }) },
+      streamState: new StreamStateStore(),
     });
 
     const res = await app.inject({

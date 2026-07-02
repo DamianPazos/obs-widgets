@@ -4,6 +4,7 @@ import websocket from '@fastify/websocket';
 import type { AppConfig } from './config';
 import type { EventBus } from './event-bus';
 import type { SourceBundle } from './sources';
+import type { StreamStateStore } from './stream-state';
 import { registerWsRoute } from './routes/ws';
 import { registerWebhookRoute } from './routes/webhooks';
 import { registerDebugRoute } from './routes/debug';
@@ -13,9 +14,15 @@ export interface BuildAppDeps {
   config: AppConfig;
   bus: EventBus;
   bundle: SourceBundle;
+  streamState: StreamStateStore;
 }
 
-export async function buildApp({ config, bus, bundle }: BuildAppDeps): Promise<FastifyInstance> {
+export async function buildApp({
+  config,
+  bus,
+  bundle,
+  streamState,
+}: BuildAppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
 
   await app.register(cors, {
@@ -39,7 +46,7 @@ export async function buildApp({ config, bus, bundle }: BuildAppDeps): Promise<F
     subscribers: bus.size,
   }));
 
-  registerWsRoute(app, bus, bundle.source.name);
+  registerWsRoute(app, bus, bundle.source.name, streamState);
 
   if (bundle.kick) {
     registerWebhookRoute(app, bundle.kick);

@@ -1,4 +1,9 @@
-import { BaseEventSource, makeEvent, type FollowerNewEvent } from '@obs-widgets/core';
+import {
+  BaseEventSource,
+  makeEvent,
+  type FollowerNewEvent,
+  type StreamStatusEvent,
+} from '@obs-widgets/core';
 
 const SAMPLE_USERNAMES = [
   'streamfan_23',
@@ -30,6 +35,15 @@ export class MockEventSource extends BaseEventSource {
   }
 
   async start(): Promise<void> {
+    // Estado inicial: en vivo desde ahora (alimenta el widget de uptime).
+    this.emit(
+      makeEvent<StreamStatusEvent>({
+        type: 'stream.status',
+        channel: this.options.channel,
+        payload: { live: true, startedAt: new Date().toISOString() },
+      }),
+    );
+
     const intervalMs = this.options.intervalMs ?? 15_000;
     this.timer = setInterval(() => this.emitRandomFollower(), intervalMs);
   }

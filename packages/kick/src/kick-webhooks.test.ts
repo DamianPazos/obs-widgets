@@ -74,7 +74,20 @@ describe('mapKickWebhookToEvent', () => {
     expect(event?.channel).toBe('mi-canal');
   });
 
+  it('mapea livestream.status.updated a stream.status', () => {
+    const event = mapKickWebhookToEvent(
+      'livestream.status.updated',
+      { broadcaster: { channel_slug: 'demo' }, is_live: true, started_at: '2026-01-01T10:00:00Z' },
+      'fallback',
+    );
+    expect(event).toMatchObject({
+      type: 'stream.status',
+      channel: 'demo',
+      payload: { live: true, startedAt: '2026-01-01T10:00:00Z' },
+    });
+  });
+
   it('devuelve null para eventos no soportados', () => {
-    expect(mapKickWebhookToEvent('livestream.status.updated', {}, 'demo')).toBeNull();
+    expect(mapKickWebhookToEvent('moderation.banned', {}, 'demo')).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { ClientMessageSchema, type ServerMessage, type WidgetEventType } from '@obs-widgets/core';
 import type { EventBus } from '../event-bus';
+import type { StreamStateStore } from '../stream-state';
 
 interface WsQuery {
   channel?: string;
@@ -14,7 +15,12 @@ interface WsQuery {
  *  - Por query string al conectarse: `/ws?channel=demo&events=follower.new`
  *  - Enviando un mensaje `{ action: "subscribe", channel, events? }`
  */
-export function registerWsRoute(app: FastifyInstance, bus: EventBus, sourceName: string): void {
+export function registerWsRoute(
+  app: FastifyInstance,
+  bus: EventBus,
+  sourceName: string,
+  streamState: StreamStateStore,
+): void {
   app.get<{ Querystring: WsQuery }>('/ws', { websocket: true }, (socket, req) => {
     let remove: (() => void) | null = null;
 
@@ -27,6 +33,14 @@ export function registerWsRoute(app: FastifyInstance, bus: EventBus, sourceName:
       });
       const welcome: ServerMessage = { kind: 'welcome', source: sourceName, channel };
       socket.send(JSON.stringify(welcome));
+
+      // Snapshot: si ya conocemos el estado del stream, se lo mandamos de una
+      // (para widgets que se conectan con el stream ya empezado).
+      const snapshot = streamState.get(channel);
+      if (snapshot && (!events || events.includes('stream.status'))) {
+        const message: ServerMessage = { kind: 'event', event: snapshot };
+        socket.send(JSON.stringify(message));
+      }
     };
 
     // Suscripción inmediata vía query string (lo más cómodo para OBS).

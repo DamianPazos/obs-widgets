@@ -1,24 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WidgetEventSchema } from '@obs-widgets/core';
+import { WidgetEventSchema, type WidgetEvent } from '@obs-widgets/core';
 import { MockEventSource } from './mock-source';
 
 describe('MockEventSource', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('emite eventos follower.new válidos en el intervalo configurado', async () => {
+  it('emite un stream.status inicial y follower.new en el intervalo', async () => {
     const source = new MockEventSource({ channel: 'demo', intervalMs: 1000 });
-    const received: unknown[] = [];
+    const received: WidgetEvent[] = [];
     source.onEvent((e) => received.push(e));
 
     await source.start();
     vi.advanceTimersByTime(3000);
     await source.stop();
 
-    expect(received.length).toBe(3);
+    // Todos los eventos deben cumplir el contrato.
     for (const event of received) {
-      const parsed = WidgetEventSchema.safeParse(event);
-      expect(parsed.success).toBe(true);
+      expect(WidgetEventSchema.safeParse(event).success).toBe(true);
     }
+
+    // Estado inicial de stream + 3 seguidores en 3 segundos.
+    expect(received[0]?.type).toBe('stream.status');
+    expect(received.filter((e) => e.type === 'follower.new')).toHaveLength(3);
   });
 });

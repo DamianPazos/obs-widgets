@@ -15,6 +15,7 @@ export const DEFAULT_KICK_EVENTS: KickEventSubscription[] = [
   { name: 'channel.subscription.new', version: 1 },
   { name: 'channel.subscription.renewal', version: 1 },
   { name: 'channel.subscription.gifts', version: 1 },
+  { name: 'livestream.status.updated', version: 1 },
 ];
 
 /** Headers que envía Kick en cada webhook. */
@@ -79,6 +80,9 @@ interface KickWebhookPayload {
   sender?: KickUserRef;
   duration?: number;
   content?: string;
+  is_live?: boolean;
+  started_at?: string;
+  ended_at?: string | null;
   [key: string]: unknown;
 }
 
@@ -146,6 +150,16 @@ export function mapKickWebhookToEvent(
         payload: {
           username: payload.sender?.username ?? 'anónimo',
           message: payload.content ?? '',
+        },
+      });
+
+    case 'livestream.status.updated':
+      return makeEvent<WidgetEvent>({
+        type: 'stream.status',
+        channel,
+        payload: {
+          live: Boolean(payload.is_live),
+          startedAt: payload.started_at ?? undefined,
         },
       });
 

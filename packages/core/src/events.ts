@@ -8,7 +8,12 @@ import { z } from 'zod';
  *   2. Mapeá la fuente correspondiente (ej. Kick) a esa variante en su adapter.
  *   3. Consumilo desde el widget filtrando por `type`.
  */
-export const WIDGET_EVENT_TYPES = ['follower.new', 'subscription.new', 'chat.message'] as const;
+export const WIDGET_EVENT_TYPES = [
+  'follower.new',
+  'subscription.new',
+  'chat.message',
+  'stream.status',
+] as const;
 
 export type WidgetEventType = (typeof WIDGET_EVENT_TYPES)[number];
 
@@ -50,16 +55,29 @@ export const ChatMessageEventSchema = z.object({
   }),
 });
 
+export const StreamStatusEventSchema = z.object({
+  ...baseFields,
+  type: z.literal('stream.status'),
+  payload: z.object({
+    /** Si el canal está en vivo. */
+    live: z.boolean(),
+    /** Momento en que arrancó el stream (ISO 8601), si está en vivo. */
+    startedAt: z.string().optional(),
+  }),
+});
+
 export const WidgetEventSchema = z.discriminatedUnion('type', [
   FollowerNewEventSchema,
   SubscriptionNewEventSchema,
   ChatMessageEventSchema,
+  StreamStatusEventSchema,
 ]);
 
 export type WidgetEvent = z.infer<typeof WidgetEventSchema>;
 export type FollowerNewEvent = z.infer<typeof FollowerNewEventSchema>;
 export type SubscriptionNewEvent = z.infer<typeof SubscriptionNewEventSchema>;
 export type ChatMessageEvent = z.infer<typeof ChatMessageEventSchema>;
+export type StreamStatusEvent = z.infer<typeof StreamStatusEventSchema>;
 
 /** Helper para construir un evento con timestamp por defecto. */
 export function makeEvent<T extends WidgetEvent>(

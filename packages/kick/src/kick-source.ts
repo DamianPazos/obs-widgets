@@ -1,4 +1,4 @@
-import { BaseEventSource } from '@obs-widgets/core';
+import { BaseEventSource, makeEvent, type StreamStatusEvent } from '@obs-widgets/core';
 import { KickApiClient, type KickEventSubscription } from './kick-api';
 import {
   DEFAULT_KICK_EVENTS,
@@ -68,6 +68,20 @@ export class KickEventSource extends BaseEventSource {
         `Kick: canal "${this.options.channel}" (id ${broadcasterId}). ` +
           `Suscripciones nuevas: ${createdNames || 'ninguna (ya existían)'}.`,
       );
+
+      // Estado inicial del stream (para que el widget de uptime lo sepa aunque
+      // se conecte con el stream ya empezado).
+      const status = await this.api.getStreamStatus(this.options.channel).catch(() => null);
+      if (status) {
+        this.emit(
+          makeEvent<StreamStatusEvent>({
+            type: 'stream.status',
+            channel: this.options.channel,
+            payload: status,
+          }),
+        );
+        log(`Kick: estado inicial del stream → ${status.live ? 'EN VIVO' : 'offline'}.`);
+      }
       return;
     }
 

@@ -109,6 +109,7 @@ Deberías ver la alerta en el widget `follower-alert`.
 | --------------- | ---------------------------------------------------------------------------- |
 | Live Streaming  | `http://localhost:5173/?widget=live-streaming&title=EN%20VIVO&subtitle=Hola` |
 | Alerta Seguidor | `http://localhost:5173/?widget=follower-alert&channel=demo&duration=6000`    |
+| Tiempo en Vivo  | `http://localhost:5173/?widget=stream-uptime&channel=tu_canal`               |
 
 > Para publicar los widgets sin tener la PC prendida, corré `pnpm --filter @obs-widgets/widgets build`
 > y serví la carpeta `apps/widgets/dist` en cualquier hosting estático (Netlify, GitHub Pages, etc.).
