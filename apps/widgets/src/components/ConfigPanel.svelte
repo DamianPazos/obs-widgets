@@ -436,6 +436,11 @@
     .layout {
       grid-template-columns: 1fr;
     }
+
+    /* En una columna no tiene sentido fijarlo. */
+    .preview-pane {
+      position: static;
+    }
   }
 
   .card {
@@ -634,6 +639,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    position: sticky;
+    top: 1.5rem;
+    align-self: start;
   }
 
   .toolbar {
