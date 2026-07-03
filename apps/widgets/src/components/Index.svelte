@@ -78,7 +78,7 @@
 
 <style>
   main {
-    min-height: 100vh;
+    height: 100vh;
     padding: 3rem 1.5rem;
     background: radial-gradient(circle at top, #1c2029, #0d0f14);
     color: #f5f7fa;
