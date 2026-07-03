@@ -7,6 +7,7 @@ directories:
 # El main ya viene bundleado (tsup), así que no necesitamos node_modules.
 files:
   - dist/**
+  - static/**
   - package.json
 
 # El frontend de widgets y los íconos van como recursos junto al ejecutable.
@@ -15,6 +16,12 @@ extraResources:
     to: widgets
   - from: assets
     to: assets
+
+# Auto-update: los instaladores se publican en las Releases de GitHub.
+publish:
+  provider: github
+  owner: DamianPazos
+  repo: obs-widgets
 
 win:
   target: nsis

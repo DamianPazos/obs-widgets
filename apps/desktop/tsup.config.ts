@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/main.ts', 'src/headless.ts'],
+  entry: ['src/main.ts', 'src/headless.ts', 'src/settings-preload.ts'],
   format: ['cjs'],
   target: 'node20',
   platform: 'node',

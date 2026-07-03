@@ -79,17 +79,22 @@ pnpm --filter @obs-widgets/desktop dev      # compila widgets + abre la app
 ```
 
 - **Server en la bandeja**: cerrás la ventana y la app queda como ícono en la bandeja
-  (el server sigue vivo mientras streameás). Desde ahí: _Abrir panel_, _Copiar URL base_
-  o _Salir_.
+  (el server sigue vivo mientras streameás). Desde ahí: _Abrir panel_, _Configuración_,
+  _Copiar URL base_ o _Salir_.
+- **Configuración sin `.env`**: en _Configuración_ elegís la **fuente** (mock / Kick WS /
+  Kick oficial), el **canal**, el **puerto** y si **arranca con Windows**. Se aplica al
+  instante (reinicia la fuente sin cerrar la app).
+- **Kick sin fricción**: con el modo **Kick (WS)** la app se conecta al WebSocket de Kick
+  usando la red de Chromium (resuelve el canal aunque el endpoint esté tras Cloudflare) —
+  sin credenciales ni túnel.
 - **Un solo origen local**: los widgets se sirven desde el mismo server, así que se
   conectan al WebSocket sin configurar nada (`ws://localhost:8787` por defecto).
+- **Auto-update**: la app instalada busca nuevas versiones en las Releases de GitHub, las
+  descarga en segundo plano y te avisa para reiniciar y aplicarlas.
 - **Sin GUI**: `pnpm --filter @obs-widgets/desktop start:headless` corre solo el server.
 - **Instalador**: `pnpm --filter @obs-widgets/desktop package` genera un `.exe` (NSIS) en
-  `apps/desktop/release/` (empaqueta el frontend y el server juntos).
-
-> Para eventos reales de Kick, la app usa la misma config de `apps/server/.env` (ver más
-> abajo). Recibir webhooks sigue necesitando exponer el server con un túnel — automatizarlo
-> dentro de la app es la Fase 2.
+  `apps/desktop/release/`. En CI, al empujar un tag `v*` se publica solo (ver
+  `.github/workflows/release.yml`).
 
 ---
 

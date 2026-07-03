@@ -35,34 +35,58 @@ export interface KickChannelInfo {
   startedAt?: string;
 }
 
-/** Resuelve ids y estado del canal desde el endpoint público (no oficial) de Kick. */
-export async function fetchKickChannelInfo(slug: string): Promise<KickChannelInfo> {
-  const res = await fetch(`${CHANNELS_ENDPOINT}/${encodeURIComponent(slug)}`, {
-    headers: { 'user-agent': BROWSER_UA, accept: 'application/json' },
-  });
-  if (!res.ok) {
-    throw new Error(`Kick WS: no se pudo resolver el canal "${slug}" (${res.status})`);
-  }
-  const json = (await res.json()) as {
-    id?: number;
-    chatroom?: { id?: number };
-    livestream?: {
-      is_live?: boolean;
-      viewer_count?: number;
-      created_at?: string;
-      start_time?: string;
-    };
+/** Resuelve los ids/estado de un canal a partir de su slug. */
+export type KickChannelResolver = (slug: string) => Promise<KickChannelInfo>;
+
+interface RawChannel {
+  id?: number;
+  chatroom?: { id?: number };
+  livestream?: {
+    is_live?: boolean;
+    viewer_count?: number;
+    created_at?: string;
+    start_time?: string;
   };
-  if (json.id == null || json.chatroom?.id == null) {
+}
+
+/** Normaliza la respuesta cruda del endpoint de canales a `KickChannelInfo`. */
+export function parseChannelInfo(json: unknown, slug: string): KickChannelInfo {
+  const c = (json ?? {}) as RawChannel;
+  if (c.id == null || c.chatroom?.id == null) {
     throw new Error(`Kick WS: respuesta inesperada para el canal "${slug}"`);
   }
   return {
-    channelId: json.id,
-    chatroomId: json.chatroom.id,
-    live: Boolean(json.livestream?.is_live),
-    viewers: json.livestream?.viewer_count,
-    startedAt: json.livestream?.created_at ?? json.livestream?.start_time,
+    channelId: c.id,
+    chatroomId: c.chatroom.id,
+    live: Boolean(c.livestream?.is_live),
+    viewers: c.livestream?.viewer_count,
+    startedAt: c.livestream?.created_at ?? c.livestream?.start_time,
   };
+}
+
+/**
+ * Resuelve ids y estado del canal desde el endpoint público (no oficial) de Kick.
+ * El endpoint está detrás de Cloudflare y puede devolver 403 a un fetch directo;
+ * reintentamos un par de veces. Para máxima fiabilidad, el desktop inyecta un
+ * resolver basado en Chromium (ver KickWsSourceOptions.resolveChannelInfo).
+ */
+export async function fetchKickChannelInfo(slug: string): Promise<KickChannelInfo> {
+  const url = `${CHANNELS_ENDPOINT}/${encodeURIComponent(slug)}`;
+  const headers = {
+    'user-agent': BROWSER_UA,
+    accept: 'application/json, text/plain, */*',
+    'accept-language': 'en-US,en;q=0.9,es;q=0.8',
+    referer: `https://kick.com/${encodeURIComponent(slug)}`,
+  };
+
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 500 * attempt));
+    const res = await fetch(url, { headers });
+    if (res.ok) return parseChannelInfo(await res.json(), slug);
+    lastStatus = res.status;
+  }
+  throw new Error(`Kick WS: no se pudo resolver el canal "${slug}" (${lastStatus})`);
 }
 
 interface FollowersUpdatedPayload {
@@ -168,6 +192,12 @@ export interface KickWsSourceOptions {
   viewersPollMs?: number;
   /** URL del WebSocket (para tests). */
   wsUrl?: string;
+  /**
+   * Resolver de ids/estado del canal. Por defecto usa `fetchKickChannelInfo`
+   * (fetch directo); el desktop inyecta uno basado en Chromium para saltear
+   * Cloudflare de forma fiable.
+   */
+  resolveChannelInfo?: KickChannelResolver;
   log?: (message: string) => void;
 }
 
@@ -188,8 +218,12 @@ export class KickWsSource extends BaseEventSource {
     return this.options.log ?? (() => {});
   }
 
+  private get resolve(): KickChannelResolver {
+    return this.options.resolveChannelInfo ?? fetchKickChannelInfo;
+  }
+
   async start(): Promise<void> {
-    this.info = await fetchKickChannelInfo(this.options.channel);
+    this.info = await this.resolve(this.options.channel);
     this.log(
       `Kick WS: canal "${this.options.channel}" (channel ${this.info.channelId}, ` +
         `chatroom ${this.info.chatroomId}). Estado: ${this.info.live ? 'EN VIVO' : 'offline'}.`,
@@ -291,7 +325,7 @@ export class KickWsSource extends BaseEventSource {
     const intervalMs = this.options.viewersPollMs ?? 30_000;
     if (intervalMs <= 0) return;
     this.viewersTimer = setInterval(() => {
-      void fetchKickChannelInfo(this.options.channel)
+      void this.resolve(this.options.channel)
         .then((info) => {
           this.info = info;
           this.emitViewers(info.live, info.viewers);

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configuración · OBS Widgets</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: radial-gradient(circle at top, #1c2029, #0d0f14);
+        color: #f5f7fa;
+        padding: 1.5rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 1rem;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .hint {
+        font-size: 0.75rem;
+        color: #8b94a3;
+        margin: 0;
+      }
+      select,
+      input[type='text'],
+      input[type='number'] {
+        background: #0d0f14;
+        border: 1px solid #2a2f3a;
+        color: #dfe4ea;
+        border-radius: 8px;
+        padding: 0.5rem 0.6rem;
+        font-size: 0.9rem;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .row input[type='checkbox'] {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      button {
+        background: #53fc18;
+        color: #06210a;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+      #status {
+        font-size: 0.8rem;
+        color: #53fc18;
+      }
+      code {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 0.05rem 0.35rem;
+        border-radius: 4px;
+      }
+      .obs-url {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: #aeb6c2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>⚙ Configuración</h1>
+
+    <div class="field">
+      <label for="eventSource">Fuente de eventos</label>
+      <select id="eventSource">
+        <option value="mock">Demo (mock) — eventos de prueba</option>
+        <option value="kick-ws">Kick (WS) — sin credenciales ni túnel</option>
+        <option value="kick">Kick (oficial) — webhooks (avanzado, usa .env)</option>
+      </select>
+      <p class="hint">Para eventos reales sin complicaciones, usá <code>Kick (WS)</code>.</p>
+    </div>
+
+    <div class="field">
+      <label for="channel">Canal de Kick</label>
+      <input id="channel" type="text" placeholder="tu_canal" />
+      <p class="hint">El slug de tu canal (lo que va en kick.com/<b>tu_canal</b>).</p>
+    </div>
+
+    <div class="field">
+      <label for="port">Puerto local</label>
+      <input id="port" type="number" min="1" max="65535" />
+      <p class="hint">El que apuntás en OBS: <code>http://localhost:<span id="portEcho">8787</span>/?widget=…</code></p>
+    </div>
+
+    <div class="field">
+      <div class="row">
+        <input id="autostart" type="checkbox" />
+        <label for="autostart" style="font-weight: 400">Abrir al iniciar Windows</label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save">Guardar</button>
+      <span id="status"></span>
+    </div>
+
+    <p class="obs-url">URL base actual: <code id="baseUrl">—</code></p>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function fillPortEcho() {
+        $('portEcho').textContent = $('port').value || '8787';
+        $('baseUrl').textContent = 'http://localhost:' + ($('port').value || '8787');
+      }
+
+      async function load() {
+        const s = await window.obs.getSettings();
+        $('eventSource').value = s.eventSource;
+        $('channel').value = s.channel;
+        $('port').value = s.port;
+        $('autostart').checked = s.autostart;
+        fillPortEcho();
+      }
+
+      $('port').addEventListener('input', fillPortEcho);
+
+      $('save').addEventListener('click', async () => {
+        $('status').textContent = 'Guardando…';
+        const next = {
+          eventSource: $('eventSource').value,
+          channel: $('channel').value,
+          port: Number($('port').value),
+          autostart: $('autostart').checked,
+        };
+        try {
+          const res = await window.obs.saveSettings(next);
+          $('baseUrl').textContent = res.url;
+          $('status').textContent = '✓ Guardado y aplicado';
+          setTimeout(() => ($('status').textContent = ''), 2500);
+        } catch (e) {
+          $('status').textContent = 'Error al guardar';
+        }
+      });
+
+      load();
+    </script>
+  </body>
+</html>

@@ -1,5 +1,10 @@
 import type { EventSource } from '@obs-widgets/core';
-import { KickEventSource, KickWsSource, MockEventSource } from '@obs-widgets/kick';
+import {
+  KickEventSource,
+  KickWsSource,
+  MockEventSource,
+  type KickChannelResolver,
+} from '@obs-widgets/kick';
 import type { AppConfig } from './config';
 
 export interface SourceBundle {
@@ -8,11 +13,19 @@ export interface SourceBundle {
   kick?: KickEventSource;
 }
 
+export interface SourceResolvers {
+  /** Resolver de ids del canal para `kick-ws` (el desktop inyecta uno). */
+  kickChannelInfo?: KickChannelResolver;
+}
+
 /**
  * Fábrica de fuentes de eventos. Elegir la plataforma es cambiar un env var:
  * el resto del sistema depende solo del puerto `EventSource`.
  */
-export function createEventSource(config: AppConfig): SourceBundle {
+export function createEventSource(
+  config: AppConfig,
+  resolvers: SourceResolvers = {},
+): SourceBundle {
   if (config.EVENT_SOURCE === 'kick') {
     const kick = new KickEventSource({
       channel: config.KICK_CHANNEL,
@@ -32,6 +45,7 @@ export function createEventSource(config: AppConfig): SourceBundle {
       source: new KickWsSource({
         channel: config.KICK_CHANNEL,
         viewersPollMs: config.KICK_VIEWERS_POLL_MS,
+        resolveChannelInfo: resolvers.kickChannelInfo,
         log: (message) => console.info(`[kick-ws] ${message}`),
       }),
     };

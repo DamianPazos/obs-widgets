@@ -168,7 +168,7 @@ Que cualquiera pueda usarlo en su máquina fácilmente.
 - ⬜ Guía de deploy a GitHub Pages / Netlify.
 - ⬜ Workflow de deploy automático del build de `widgets`.
 
-### HU-4.3 — App de escritorio (Electron) 🚧
+### HU-4.3 — App de escritorio (Electron) ✅
 
 > Como **streamer**, quiero abrir un programa junto con OBS que sirva todos los widgets
 > en localhost, sin levantar nada a mano ni depender de un hosting.
@@ -184,8 +184,12 @@ Que cualquiera pueda usarlo en su máquina fácilmente.
   credenciales, sin túnel y sin webhooks (solo el slug del canal). Resuelve los ids del
   canal/chatroom por el endpoint público y pollea el viewer_count. _(Vía no oficial;
   probada en vivo: resuelve ids, conecta y suscribe.)_
-- ⬜ **Fase 3**: autostart con el SO, panel de settings (elegir canal/modo sin tocar
-  `.env`, credenciales de Kick), autoupdate + instalador publicado.
+- ✅ **Fase 3**: panel de **settings** (elegir fuente/canal/puerto sin tocar `.env`, se
+  aplica en caliente reiniciando la fuente), **autostart** con el SO, **auto-update**
+  (electron-updater + Releases de GitHub) y **workflow de release** que publica el
+  instalador al empujar un tag `v*`. El modo `kick-ws` resuelve el canal con la red de
+  Chromium (saltea Cloudflare); si la fuente falla, el server igual levanta (el panel y
+  los widgets offline siguen funcionando).
 
 ---
 

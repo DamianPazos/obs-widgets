@@ -1,16 +1,24 @@
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
+import type { KickChannelResolver } from '@obs-widgets/kick';
 import { buildApp } from './app';
 import { loadConfig, type AppConfig } from './config';
 import { EventBus } from './event-bus';
 import { createEventSource } from './sources';
 import { StreamStateStore } from './stream-state';
 
+export type { AppConfig } from './config';
+
 export interface StartServerOptions {
   /** Directorio del build de widgets a servir (modo escritorio). */
   staticDir?: string;
   /** Overrides de configuración (además de lo que venga por env). */
   configOverrides?: Partial<AppConfig>;
+  /**
+   * Resolver de ids del canal para la fuente `kick-ws`. El desktop inyecta uno
+   * basado en Chromium (saltea Cloudflare); en el server se usa el fetch directo.
+   */
+  kickChannelResolver?: KickChannelResolver;
 }
 
 export interface ServerHandle {
@@ -31,7 +39,7 @@ export interface ServerHandle {
  */
 export async function startEventServer(opts: StartServerOptions = {}): Promise<ServerHandle> {
   const config: AppConfig = { ...loadConfig(), ...opts.configOverrides };
-  const bundle = createEventSource(config);
+  const bundle = createEventSource(config, { kickChannelInfo: opts.kickChannelResolver });
   const bus = new EventBus();
   const streamState = new StreamStateStore();
 
@@ -45,7 +53,15 @@ export async function startEventServer(opts: StartServerOptions = {}): Promise<S
   // @fastify/static exige una ruta absoluta.
   const staticDir = opts.staticDir ? resolve(opts.staticDir) : undefined;
   const app = await buildApp({ config, bus, bundle, streamState, staticDir });
-  await bundle.source.start();
+
+  // Si la fuente falla al arrancar (ej. Kick inalcanzable), NO tumbamos el
+  // server: el panel y los widgets offline tienen que seguir funcionando.
+  try {
+    await bundle.source.start();
+  } catch (err) {
+    app.log.error({ err }, `La fuente "${bundle.source.name}" no pudo iniciar`);
+  }
+
   await app.listen({ port: config.PORT, host: '0.0.0.0' });
 
   const address = app.server.address();
