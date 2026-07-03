@@ -3,13 +3,13 @@
 
   let copiedId = $state<string | null>(null);
 
-  function widgetUrl(id: string, mode: string): string {
-    const base = `${window.location.origin}/?widget=${id}`;
-    return mode === 'realtime' ? `${base}&channel=demo` : base;
+  // Sin `channel`: el widget sigue el canal configurado en la app/server.
+  function widgetUrl(id: string): string {
+    return `${window.location.origin}/?widget=${id}`;
   }
 
-  async function copy(id: string, mode: string): Promise<void> {
-    await navigator.clipboard.writeText(widgetUrl(id, mode));
+  async function copy(id: string): Promise<void> {
+    await navigator.clipboard.writeText(widgetUrl(id));
     copiedId = id;
     setTimeout(() => (copiedId = null), 1500);
   }
@@ -55,19 +55,14 @@
         {/if}
 
         <div class="url">
-          <input readonly value={widgetUrl(widget.id, widget.mode)} />
-          <button onclick={() => copy(widget.id, widget.mode)}>
+          <input readonly value={widgetUrl(widget.id)} />
+          <button onclick={() => copy(widget.id)}>
             {copiedId === widget.id ? '¡Copiado!' : 'Copiar'}
           </button>
         </div>
         <div class="actions">
           <a class="configure" href={`?config=${widget.id}`}>⚙ Personalizar</a>
-          <a
-            class="preview"
-            href={widgetUrl(widget.id, widget.mode)}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a class="preview" href={widgetUrl(widget.id)} target="_blank" rel="noreferrer">
             Previsualizar ↗
           </a>
         </div>

@@ -9,7 +9,13 @@ export const manifest: WidgetManifest = {
   mode: 'realtime',
   events: ['subscription.new'],
   params: [
-    { name: 'channel', label: 'Canal de Kick', type: 'text', default: 'demo' },
+    {
+      name: 'channel',
+      label: 'Canal de Kick',
+      description: 'Vacío = usa el canal configurado en la app.',
+      type: 'text',
+      default: '',
+    },
     { name: 'labelNew', label: 'Texto (nueva sub)', type: 'text', default: '¡Nueva suscripción!' },
     {
       name: 'labelRenewal',

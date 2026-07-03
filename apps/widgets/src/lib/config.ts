@@ -14,8 +14,12 @@ export function getServerUrl(): string {
   return fromQuery ?? fromEnv ?? 'ws://localhost:8787';
 }
 
-/** Canal a monitorear (solo widgets realtime). */
-export function getChannel(fallback = 'demo'): string {
+/**
+ * Canal a monitorear (solo widgets realtime). Si no viene en la URL, devolvemos
+ * vacío: el server usa entonces el canal configurado en la app (así las URLs de
+ * OBS no necesitan `channel=` y siguen automáticamente al modo/canal elegido).
+ */
+export function getChannel(fallback = ''): string {
   return params().get('channel') ?? fallback;
 }
 

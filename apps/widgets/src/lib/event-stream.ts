@@ -26,7 +26,8 @@ export function connectEvents(opts: EventClientOptions): () => void {
 
   const url = new URL(opts.serverUrl.replace(/^http/, 'ws'));
   url.pathname = '/ws';
-  url.searchParams.set('channel', opts.channel);
+  // Sin canal, el server usa el configurado en la app (así OBS no necesita channel=).
+  if (opts.channel) url.searchParams.set('channel', opts.channel);
   if (opts.events && opts.events.length > 0) {
     url.searchParams.set('events', opts.events.join(','));
   }

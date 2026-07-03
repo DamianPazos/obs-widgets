@@ -9,7 +9,13 @@ export const manifest: WidgetManifest = {
   mode: 'realtime',
   events: ['follower.new'],
   params: [
-    { name: 'channel', label: 'Canal de Kick', type: 'text', default: 'demo' },
+    {
+      name: 'channel',
+      label: 'Canal de Kick',
+      description: 'Vacío = usa el canal configurado en la app.',
+      type: 'text',
+      default: '',
+    },
     { name: 'title', label: 'Texto', type: 'text', default: '¡Nuevo seguidor!' },
     {
       name: 'icon',

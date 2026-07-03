@@ -20,6 +20,8 @@ export function registerWsRoute(
   bus: EventBus,
   sourceName: string,
   streamState: StreamStateStore,
+  /** Canal por defecto si el widget no especifica uno (el de la app/config). */
+  defaultChannel: string,
 ): void {
   app.get<{ Querystring: WsQuery }>('/ws', { websocket: true }, (socket, req) => {
     let remove: (() => void) | null = null;
@@ -50,13 +52,16 @@ export function registerWsRoute(
     };
 
     // Suscripción inmediata vía query string (lo más cómodo para OBS).
+    // Sin canal explícito, seguimos el canal configurado en la app: así las
+    // URLs de OBS no necesitan `channel=` y siguen automáticamente al modo/canal.
     const { channel, events } = req.query;
-    if (channel) {
+    const chan = channel && channel.trim() ? channel.trim() : defaultChannel;
+    if (chan) {
       const list = events
         ?.split(',')
         .map((e) => e.trim())
         .filter(Boolean) as WidgetEventType[] | undefined;
-      subscribe(channel, list);
+      subscribe(chan, list);
     }
 
     socket.on('message', (raw: Buffer) => {

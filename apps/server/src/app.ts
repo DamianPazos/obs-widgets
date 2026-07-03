@@ -54,7 +54,7 @@ export async function buildApp({
     subscribers: bus.size,
   }));
 
-  registerWsRoute(app, bus, bundle.source.name, streamState);
+  registerWsRoute(app, bus, bundle.source.name, streamState, config.KICK_CHANNEL);
 
   if (bundle.kick) {
     registerWebhookRoute(app, bundle.kick);

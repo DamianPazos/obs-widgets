@@ -9,7 +9,13 @@ export const manifest: WidgetManifest = {
   mode: 'realtime',
   events: ['stream.status'],
   params: [
-    { name: 'channel', label: 'Canal de Kick', type: 'text', default: 'demo' },
+    {
+      name: 'channel',
+      label: 'Canal de Kick',
+      description: 'Vacío = usa el canal configurado en la app.',
+      type: 'text',
+      default: '',
+    },
     { name: 'label', label: 'Etiqueta', type: 'text', default: 'EN VIVO' },
     {
       name: 'icon',

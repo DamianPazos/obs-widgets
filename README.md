@@ -83,7 +83,8 @@ pnpm --filter @obs-widgets/desktop dev      # compila widgets + abre la app
   _Copiar URL base_ o _Salir_.
 - **Configuración sin `.env`**: en _Configuración_ elegís la **fuente** (mock / Kick WS /
   Kick oficial), el **canal**, el **puerto** y si **arranca con Windows**. Se aplica al
-  instante (reinicia la fuente sin cerrar la app).
+  instante (reinicia la fuente sin cerrar la app). Los widgets **siguen solos** ese canal:
+  las _Browser Source_ de OBS no necesitan `channel=`, así pasás de demo a real sin tocarlas.
 - **Kick sin fricción**: con el modo **Kick (WS)** la app se conecta al WebSocket de Kick
   usando la red de Chromium (resuelve el canal aunque el endpoint esté tras Cloudflare) —
   sin credenciales ni túnel.
@@ -140,11 +141,15 @@ Deberías ver la alerta en el widget `follower-alert`.
 | Widget          | Ejemplo de URL                                                               |
 | --------------- | ---------------------------------------------------------------------------- |
 | Live Streaming  | `http://localhost:5173/?widget=live-streaming&title=EN%20VIVO&subtitle=Hola` |
-| Alerta Seguidor | `http://localhost:5173/?widget=follower-alert&channel=demo&duration=6000`    |
-| Alerta de Sub   | `http://localhost:5173/?widget=sub-alert&channel=tu_canal`                   |
-| Tiempo en Vivo  | `http://localhost:5173/?widget=stream-uptime&channel=tu_canal`               |
-| Espectadores    | `http://localhost:5173/?widget=viewer-count&channel=tu_canal`                |
+| Alerta Seguidor | `http://localhost:5173/?widget=follower-alert&duration=6000`                 |
+| Alerta de Sub   | `http://localhost:5173/?widget=sub-alert`                                    |
+| Tiempo en Vivo  | `http://localhost:5173/?widget=stream-uptime`                                |
+| Espectadores    | `http://localhost:5173/?widget=viewer-count`                                 |
 
+> **El `channel` es opcional**: si no lo ponés, el widget sigue el canal configurado
+> en la app/server. Así cambiás entre demo y tu canal real desde un solo lugar sin
+> editar las URLs de OBS. (Podés forzar uno con `&channel=tu_canal` si querés.)
+>
 > Con la **app de escritorio** el host es `http://localhost:8787` en vez de `:5173`.
 > También podés combinar varios widgets en una sola _Browser Source_ con el
 > **constructor de escenas** (`/?builder`).
