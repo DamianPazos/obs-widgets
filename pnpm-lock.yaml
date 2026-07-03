@@ -46,7 +46,7 @@ importers:
         version: 8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
 
   apps/desktop:
-    dependencies:
+    devDependencies:
       '@obs-widgets/kick':
         specifier: workspace:*
         version: link:../../packages/kick
@@ -56,7 +56,6 @@ importers:
       '@obs-widgets/widgets':
         specifier: workspace:*
         version: link:../widgets
-    devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.0
