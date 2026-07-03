@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getWidget, widgets } from '../lib/registry';
   import { clamp } from '../lib/layout';
+  import WidgetConfig from './WidgetConfig.svelte';
   import {
     CANVAS_PRESETS,
     decodeScene,
@@ -27,6 +28,7 @@
   let instances = $state<SceneInstance[]>(initial.instances);
   let canvas = $state<{ w: number; h: number }>(initial.canvas ?? { ...DEFAULT_CANVAS });
   let selectedId = $state<string | null>(null);
+  let editingId = $state<string | null>(null);
   let addChoice = $state<string>(widgets[0]?.id ?? '');
   let importUrl = $state('');
   let copied = $state(false);
@@ -36,6 +38,11 @@
     `${window.location.origin}/?scene=${encodeScene({ instances, canvas })}`,
   );
   const selected = $derived(instances.find((i) => i.id === selectedId) ?? null);
+  const editing = $derived(instances.find((i) => i.id === editingId) ?? null);
+
+  function updateParams(id: string, params: Record<string, string>): void {
+    instances = instances.map((i) => (i.id === id ? { ...i, params } : i));
+  }
 
   // Persistimos la escena en localStorage mientras se edita.
   $effect(() => {
@@ -96,11 +103,13 @@
   function remove(id: string): void {
     instances = instances.filter((i) => i.id !== id);
     if (selectedId === id) selectedId = null;
+    if (editingId === id) editingId = null;
   }
 
   function clearScene(): void {
     instances = [];
     selectedId = null;
+    editingId = null;
   }
 
   async function copyScene(): Promise<void> {
@@ -230,7 +239,9 @@
               selected.rect.w,
             )}×{Math.round(selected.rect.h)}%
           </p>
-          <p class="hint">La configuración fina de cada widget llega en la próxima fase.</p>
+          <button class="primary full" onclick={() => (editingId = selected!.id)}>
+            ⚙ Personalizar este widget
+          </button>
         </section>
       {/if}
     </aside>
@@ -270,6 +281,32 @@
     </section>
   </div>
 </main>
+
+{#if editing}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="modal-backdrop" onclick={() => (editingId = null)}>
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-head">
+        <h2>Personalizar: {widgetName(editing.widget)}</h2>
+        <button class="close" title="Cerrar" onclick={() => (editingId = null)}>✕</button>
+      </div>
+      <div class="modal-body">
+        {#key editing.id}
+          <WidgetConfig
+            widgetId={editing.widget}
+            params={editing.params}
+            onChange={(p) => updateParams(editing!.id, p)}
+          />
+        {/key}
+      </div>
+      <div class="modal-foot">
+        <p class="hint">Los cambios se aplican al instante en la escena.</p>
+        <button class="primary" onclick={() => (editingId = null)}>Listo</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .builder {
@@ -512,5 +549,72 @@
     border-radius: 8px;
     padding: 0.5rem 0.6rem;
     font-size: 0.8rem;
+  }
+
+  button.primary.full {
+    width: 100%;
+    margin-top: 0.6rem;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(6, 8, 12, 0.72);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3vh 1.5rem;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: min(1000px, 100%);
+    background: #12151b;
+    border: 1px solid #262b36;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #262b36;
+  }
+
+  .modal-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+
+  .close {
+    background: transparent;
+    border: 1px solid #2a2f3a;
+    color: #aeb6c2;
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+  }
+
+  .modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #262b36;
+  }
+
+  .modal-foot .hint {
+    margin: 0;
   }
 </style>
