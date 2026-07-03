@@ -1,0 +1,26 @@
+{
+  "name": "@obs-widgets/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App de escritorio (Electron) que corre junto con OBS: levanta el server de eventos y sirve todos los widgets en localhost.",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "pnpm --filter @obs-widgets/widgets build && tsup && electron .",
+    "build": "tsup",
+    "start:headless": "node dist/headless.js",
+    "package": "pnpm --filter @obs-widgets/widgets build && tsup && electron-builder",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@obs-widgets/server": "workspace:*",
+    "@obs-widgets/widgets": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

@@ -146,7 +146,7 @@ Alertas conectadas a la plataforma.
 
 ---
 
-## Épica 4 — Experiencia de despliegue ⬜
+## Épica 4 — Experiencia de despliegue 🚧
 
 Que cualquiera pueda usarlo en su máquina fácilmente.
 
@@ -167,6 +167,21 @@ Que cualquiera pueda usarlo en su máquina fácilmente.
 
 - ⬜ Guía de deploy a GitHub Pages / Netlify.
 - ⬜ Workflow de deploy automático del build de `widgets`.
+
+### HU-4.3 — App de escritorio (Electron) 🚧
+
+> Como **streamer**, quiero abrir un programa junto con OBS que sirva todos los widgets
+> en localhost, sin levantar nada a mano ni depender de un hosting.
+
+**Tareas**
+
+- ✅ **Fase 1**: `apps/desktop` (Electron) que embebe el server (`startEventServer`) y
+  sirve el build de widgets vía `@fastify/static`; ventana con el panel + ícono en la
+  bandeja (cerrar = seguir en segundo plano); una sola instancia; entry `headless` y
+  config de `electron-builder` (NSIS).
+- ⬜ **Fase 2**: eventos de Kick sin fricción (túnel automático embebido o fuente WS
+  saliente) para que sea "abrir y andar".
+- ⬜ **Fase 3**: autostart con el SO, panel de settings (credenciales de Kick), autoupdate.
 
 ---
 

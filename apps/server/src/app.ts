@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
+import fastifyStatic from '@fastify/static';
 import type { AppConfig } from './config';
 import type { EventBus } from './event-bus';
 import type { SourceBundle } from './sources';
@@ -15,6 +16,12 @@ export interface BuildAppDeps {
   bus: EventBus;
   bundle: SourceBundle;
   streamState: StreamStateStore;
+  /**
+   * Si se indica, el server también sirve el frontend de widgets (build de
+   * Vite) desde ese directorio. Lo usa la app de escritorio para servir todo
+   * desde un solo origen local.
+   */
+  staticDir?: string;
 }
 
 export async function buildApp({
@@ -22,6 +29,7 @@ export async function buildApp({
   bus,
   bundle,
   streamState,
+  staticDir,
 }: BuildAppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
 
@@ -55,6 +63,12 @@ export async function buildApp({
 
   if (config.ENABLE_DEBUG_ENDPOINT) {
     registerDebugRoute(app, bus, config);
+  }
+
+  // El frontend de widgets se sirve al final: las rutas de API declaradas arriba
+  // tienen prioridad sobre el comodín de estáticos.
+  if (staticDir) {
+    await app.register(fastifyStatic, { root: staticDir, prefix: '/' });
   }
 
   return app;

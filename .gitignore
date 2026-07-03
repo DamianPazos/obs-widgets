@@ -8,6 +8,9 @@ build/
 .turbo/
 *.tsbuildinfo
 
+# Electron (instaladores generados)
+release/
+
 # Env / secrets
 .env
 .env.*

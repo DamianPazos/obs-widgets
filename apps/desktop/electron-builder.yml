@@ -1,0 +1,24 @@
+appId: com.damianpazos.obs-widgets
+productName: OBS Widgets
+directories:
+  output: release
+  buildResources: assets
+
+# El main ya viene bundleado (tsup), así que no necesitamos node_modules.
+files:
+  - dist/**
+  - package.json
+
+# El frontend de widgets y los íconos van como recursos junto al ejecutable.
+extraResources:
+  - from: ../widgets/dist
+    to: widgets
+  - from: assets
+    to: assets
+
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false

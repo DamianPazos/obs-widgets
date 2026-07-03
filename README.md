@@ -30,6 +30,7 @@ Hay dos tipos de widgets:
 apps/
   widgets/   → Frontend Svelte. Cada widget es un Browser Source de OBS.
   server/    → Servidor relay (Fastify + WebSocket). Recibe eventos y los reenvía.
+  desktop/   → App de escritorio (Electron). Levanta el server y sirve los widgets en localhost.
 packages/
   core/      → Dominio: contratos de eventos, puertos y transporte (Zod).
   kick/      → Adapters de fuentes: MockEventSource y KickEventSource.
@@ -63,6 +64,32 @@ git clone https://github.com/DamianPazos/obs-widgets.git
 cd obs-widgets
 pnpm install
 ```
+
+---
+
+## 🖥️ App de escritorio (recomendado para usar con OBS)
+
+En vez de dejar el dev server prendido, podés correr la **app de escritorio**: abre
+una ventana con el panel y, por debajo, **levanta el server y sirve todos los widgets
+en `localhost`**. La abrís junto con OBS y apuntás las _Browser Source_ a
+`http://localhost:8787/?widget=...`.
+
+```bash
+pnpm --filter @obs-widgets/desktop dev      # compila widgets + abre la app
+```
+
+- **Server en la bandeja**: cerrás la ventana y la app queda como ícono en la bandeja
+  (el server sigue vivo mientras streameás). Desde ahí: _Abrir panel_, _Copiar URL base_
+  o _Salir_.
+- **Un solo origen local**: los widgets se sirven desde el mismo server, así que se
+  conectan al WebSocket sin configurar nada (`ws://localhost:8787` por defecto).
+- **Sin GUI**: `pnpm --filter @obs-widgets/desktop start:headless` corre solo el server.
+- **Instalador**: `pnpm --filter @obs-widgets/desktop package` genera un `.exe` (NSIS) en
+  `apps/desktop/release/` (empaqueta el frontend y el server juntos).
+
+> Para eventos reales de Kick, la app usa la misma config de `apps/server/.env` (ver más
+> abajo). Recibir webhooks sigue necesitando exponer el server con un túnel — automatizarlo
+> dentro de la app es la Fase 2.
 
 ---
 
@@ -109,7 +136,13 @@ Deberías ver la alerta en el widget `follower-alert`.
 | --------------- | ---------------------------------------------------------------------------- |
 | Live Streaming  | `http://localhost:5173/?widget=live-streaming&title=EN%20VIVO&subtitle=Hola` |
 | Alerta Seguidor | `http://localhost:5173/?widget=follower-alert&channel=demo&duration=6000`    |
+| Alerta de Sub   | `http://localhost:5173/?widget=sub-alert&channel=tu_canal`                   |
 | Tiempo en Vivo  | `http://localhost:5173/?widget=stream-uptime&channel=tu_canal`               |
+| Espectadores    | `http://localhost:5173/?widget=viewer-count&channel=tu_canal`                |
+
+> Con la **app de escritorio** el host es `http://localhost:8787` en vez de `:5173`.
+> También podés combinar varios widgets en una sola _Browser Source_ con el
+> **constructor de escenas** (`/?builder`).
 
 > Para publicar los widgets sin tener la PC prendida, corré `pnpm --filter @obs-widgets/widgets build`
 > y serví la carpeta `apps/widgets/dist` en cualquier hosting estático (Netlify, GitHub Pages, etc.).
