@@ -5,7 +5,8 @@
   "description": "App de escritorio (Electron) que corre junto con OBS: levanta el server de eventos y sirve todos los widgets en localhost.",
   "main": "dist/main.js",
   "scripts": {
-    "dev": "pnpm --filter @obs-widgets/widgets build && tsup && electron .",
+    "dev": "pnpm --filter @obs-widgets/widgets build && tsup && node scripts/launch-electron.mjs",
+    "start": "node scripts/launch-electron.mjs",
     "build": "tsup",
     "start:headless": "node dist/headless.js",
     "package": "pnpm --filter @obs-widgets/widgets build && tsup && electron-builder",
