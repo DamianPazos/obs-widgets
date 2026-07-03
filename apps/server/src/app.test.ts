@@ -13,6 +13,7 @@ const config: AppConfig = {
   KICK_CHANNEL: 'demo',
   KICK_VERIFY_SIGNATURE: false,
   KICK_VIEWERS_POLL_MS: 0,
+  KICK_TOKENS_FILE: '.kick-tokens.test.json',
 };
 
 describe('server app', () => {

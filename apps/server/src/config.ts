@@ -23,6 +23,8 @@ const EnvSchema = z.object({
   KICK_WEBHOOK_PUBLIC_KEY: z.string().optional(),
   /** Cada cuánto consultar los espectadores (ms). 0 desactiva el polling. */
   KICK_VIEWERS_POLL_MS: z.coerce.number().int().nonnegative().default(30_000),
+  /** Archivo donde se persisten los tokens de usuario del OAuth de Kick. */
+  KICK_TOKENS_FILE: z.string().default('.kick-tokens.json'),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

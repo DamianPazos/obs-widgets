@@ -41,8 +41,13 @@ export const SubscriptionNewEventSchema = z.object({
   type: z.literal('subscription.new'),
   payload: z.object({
     username: z.string().min(1),
+    /** Meses acumulados (para nueva/renovación). */
     months: z.number().int().nonnegative().default(1),
     tier: z.string().optional(),
+    /** Qué tipo de suscripción es. */
+    kind: z.enum(['new', 'renewal', 'gift']).default('new'),
+    /** Cantidad de subs regaladas (solo para `gift`). */
+    count: z.number().int().positive().optional(),
   }),
 });
 

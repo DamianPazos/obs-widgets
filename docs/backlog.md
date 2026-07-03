@@ -72,7 +72,7 @@ Widgets que funcionan sin conexión, para validar el flujo de punta a punta.
 
 ---
 
-## Épica 3 — Eventos en tiempo real de Kick 🚧
+## Épica 3 — Eventos en tiempo real de Kick ✅
 
 Alertas conectadas a la plataforma.
 
@@ -113,7 +113,7 @@ Alertas conectadas a la plataforma.
 - ✅ Cliente WebSocket con reconexión.
 - ✅ `FollowerAlert.svelte` con cola de alertas.
 
-### HU-3.3 — Integración real con la API de Kick 🚧
+### HU-3.3 — Integración real con la API de Kick ✅
 
 > Como **streamer**, quiero recibir seguidores/subs reales desde Kick.
 
@@ -121,7 +121,7 @@ Alertas conectadas a la plataforma.
 
 - Suscripción a eventos del canal automatizada. ✅
 - Webhooks verificados por firma (RSA-SHA256). ✅
-- OAuth 2.1 (PKCE) de usuario funcionando end-to-end.
+- OAuth 2.1 (PKCE) de usuario funcionando end-to-end. ✅
 
 **Tareas**
 
@@ -131,8 +131,18 @@ Alertas conectadas a la plataforma.
 - ✅ Mapeo de eventos reales (followed, subscription.new/renewal/gifts, chat).
 - ✅ Documentar el paso a paso (README).
 - ✅ **Probado end-to-end en vivo**: follows reales → firma OK (0 descartes) → HTTP 200 → alerta.
-- 🚧 Flujo OAuth de usuario (rutas `/auth/kick*`) — base lista, falta persistir tokens.
-- ⬜ Widget dedicado de `subscription.new` y renovaciones (issue #3).
+- ✅ Flujo OAuth de usuario (`/auth/kick`, `/callback`, `/status`): PKCE + persistencia
+  de tokens en disco (`TokenStore`) + renovación automática con el refresh token.
+
+### HU-3.5 — Widget "Alerta de Suscripción" ✅
+
+> Como **streamer**, quiero una alerta cuando alguien se suscribe, renueva o regala subs.
+
+**Tareas**
+
+- ✅ Evento `subscription.new` con `kind` (new/renewal/gift) + `count` de regalos.
+- ✅ Mapeo de `channel.subscription.new/renewal/gifts` distinguiendo cada caso.
+- ✅ `SubAlert.svelte` con cola de alertas y texto según el tipo.
 
 ---
 

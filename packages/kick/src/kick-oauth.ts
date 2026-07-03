@@ -67,3 +67,29 @@ export async function exchangeCodeForToken(params: {
 
   return (await res.json()) as TokenResponse;
 }
+
+/** Renueva el access token usando el refresh token (rota ambos tokens). */
+export async function refreshAccessToken(params: {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}): Promise<TokenResponse> {
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: params.clientId,
+    client_secret: params.clientSecret,
+    refresh_token: params.refreshToken,
+  });
+
+  const res = await fetch(KICK_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Kick token refresh falló: ${res.status} ${await res.text()}`);
+  }
+
+  return (await res.json()) as TokenResponse;
+}

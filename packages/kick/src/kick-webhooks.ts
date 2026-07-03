@@ -130,6 +130,7 @@ export function mapKickWebhookToEvent(
         payload: {
           username: payload.subscriber?.username ?? 'anónimo',
           months: typeof payload.duration === 'number' ? payload.duration : 1,
+          kind: eventType === 'channel.subscription.renewal' ? 'renewal' : 'new',
         },
       });
 
@@ -139,7 +140,8 @@ export function mapKickWebhookToEvent(
         channel,
         payload: {
           username: payload.gifter?.username ?? 'anónimo',
-          months: Array.isArray(payload.giftees) ? payload.giftees.length : 1,
+          kind: 'gift',
+          count: Array.isArray(payload.giftees) ? payload.giftees.length : 1,
         },
       });
 

@@ -52,6 +52,31 @@ describe('mapKickWebhookToEvent', () => {
     });
   });
 
+  it('mapea channel.subscription.new como kind "new"', () => {
+    const event = mapKickWebhookToEvent(
+      'channel.subscription.new',
+      { broadcaster: { channel_slug: 'demo' }, subscriber: { username: 'leo' }, duration: 3 },
+      'fallback',
+    );
+    expect(event).toMatchObject({
+      type: 'subscription.new',
+      channel: 'demo',
+      payload: { username: 'leo', months: 3, kind: 'new' },
+    });
+  });
+
+  it('mapea channel.subscription.renewal como kind "renewal"', () => {
+    const event = mapKickWebhookToEvent(
+      'channel.subscription.renewal',
+      { broadcaster: { channel_slug: 'demo' }, subscriber: { username: 'leo' }, duration: 5 },
+      'fallback',
+    );
+    expect(event).toMatchObject({
+      type: 'subscription.new',
+      payload: { username: 'leo', months: 5, kind: 'renewal' },
+    });
+  });
+
   it('mapea channel.subscription.gifts usando el gifter y la cantidad de giftees', () => {
     const event = mapKickWebhookToEvent(
       'channel.subscription.gifts',
@@ -61,7 +86,7 @@ describe('mapKickWebhookToEvent', () => {
     expect(event).toMatchObject({
       type: 'subscription.new',
       channel: 'demo',
-      payload: { username: 'ana', months: 3 },
+      payload: { username: 'ana', kind: 'gift', count: 3 },
     });
   });
 

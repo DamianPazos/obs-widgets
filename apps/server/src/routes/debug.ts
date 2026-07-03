@@ -11,6 +11,9 @@ const EmitBodySchema = z.object({
   message: z.string().optional(),
   live: z.boolean().optional(),
   viewers: z.number().int().nonnegative().optional(),
+  kind: z.enum(['new', 'renewal', 'gift']).optional(),
+  months: z.number().int().positive().optional(),
+  count: z.number().int().positive().optional(),
 });
 
 /**
@@ -25,13 +28,22 @@ export function registerDebugRoute(app: FastifyInstance, bus: EventBus, config: 
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
-    const { type, channel, username, message, live, viewers } = parsed.data;
+    const { type, channel, username, message, live, viewers, kind, months, count } = parsed.data;
     const target = channel ?? config.KICK_CHANNEL;
 
     let event: WidgetEvent;
     switch (type) {
       case 'subscription.new':
-        event = makeEvent({ type, channel: target, payload: { username, months: 1 } });
+        event = makeEvent({
+          type,
+          channel: target,
+          payload: {
+            username,
+            kind: kind ?? 'new',
+            months: months ?? 1,
+            ...(kind === 'gift' ? { count: count ?? 1 } : {}),
+          },
+        });
         break;
       case 'chat.message':
         event = makeEvent({
