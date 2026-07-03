@@ -200,7 +200,23 @@ function setupAutoUpdate(): void {
 
 async function startApp(): Promise<void> {
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'));
-  server = await startEventServer(serverOpts());
+  const port = settings.get().port;
+
+  try {
+    server = await startEventServer(serverOpts());
+  } catch (err) {
+    // Nunca cerramos en silencio: le decimos al usuario qué pasó.
+    dialog.showErrorBox(
+      'No se pudo iniciar OBS Widgets',
+      `No se pudo levantar el servidor local en el puerto ${port}.\n\n` +
+        `${err instanceof Error ? err.message : String(err)}\n\n` +
+        `Cerrá otras instancias (o el server de desarrollo) y volvé a abrir, ` +
+        `o cambiá el puerto en Configuración.`,
+    );
+    app.quit();
+    return;
+  }
+
   baseUrl = server.url;
   console.info(`OBS Widgets escuchando en ${baseUrl} (fuente: ${server.source})`);
 
@@ -209,6 +225,16 @@ async function startApp(): Promise<void> {
   buildTray();
   createWindow();
   setupAutoUpdate();
+
+  // Si el puerto configurado estaba ocupado, avisamos qué URL quedó activa.
+  if (server.portChanged) {
+    void dialog.showMessageBox({
+      type: 'info',
+      title: 'Puerto en uso',
+      message: `El puerto ${port} estaba ocupado.`,
+      detail: `La app está usando ${baseUrl}. Apuntá tus Browser Source de OBS a esa URL (o liberá el puerto ${port} y reiniciá).`,
+    });
+  }
 }
 
 // Una sola instancia: si ya hay una corriendo, mostramos su ventana y salimos.

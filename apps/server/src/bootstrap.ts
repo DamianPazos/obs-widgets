@@ -1,3 +1,4 @@
+import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { KickChannelResolver } from '@obs-widgets/kick';
@@ -8,6 +9,25 @@ import { createEventSource } from './sources';
 import { StreamStateStore } from './stream-state';
 
 export type { AppConfig } from './config';
+
+/** True si `port` está libre para escuchar en `host`. */
+function portIsFree(port: number, host: string): Promise<boolean> {
+  return new Promise((resolvePromise) => {
+    const probe = createServer();
+    probe.once('error', () => resolvePromise(false));
+    probe.once('listening', () => probe.close(() => resolvePromise(true)));
+    probe.listen(port, host);
+  });
+}
+
+/** Devuelve el `preferred` si está libre, o el próximo libre (hasta +20). */
+async function pickPort(preferred: number, host: string): Promise<number> {
+  for (let port = preferred; port <= preferred + 20; port++) {
+    if (await portIsFree(port, host)) return port;
+  }
+  // Ninguno libre: devolvemos el preferido para que el listen falle con su error.
+  return preferred;
+}
 
 export interface StartServerOptions {
   /** Directorio del build de widgets a servir (modo escritorio). */
@@ -25,6 +45,8 @@ export interface ServerHandle {
   app: FastifyInstance;
   /** Puerto real en el que quedó escuchando. */
   port: number;
+  /** `true` si hubo que usar un puerto distinto al configurado. */
+  portChanged: boolean;
   /** URL base local, ej. `http://localhost:8787`. */
   url: string;
   /** Fuente de eventos activa (mock/kick). */
@@ -62,14 +84,17 @@ export async function startEventServer(opts: StartServerOptions = {}): Promise<S
     app.log.error({ err }, `La fuente "${bundle.source.name}" no pudo iniciar`);
   }
 
-  await app.listen({ port: config.PORT, host: '0.0.0.0' });
-
-  const address = app.server.address();
-  const port = typeof address === 'object' && address ? address.port : config.PORT;
+  // Si el puerto preferido está ocupado (otra instancia, server de dev, etc.),
+  // tomamos el próximo libre en vez de tumbar la app.
+  const host = '0.0.0.0';
+  const port = await pickPort(config.PORT, host);
+  await app.listen({ port, host });
 
   return {
     app,
     port,
+    /** `true` si hubo que usar un puerto distinto al configurado. */
+    portChanged: port !== config.PORT,
     url: `http://localhost:${port}`,
     source: bundle.source.name,
     stop: async () => {
