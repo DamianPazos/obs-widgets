@@ -12,7 +12,7 @@ function boolFromEnv(defaultValue: boolean) {
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   CORS_ORIGIN: z.string().default('*'),
-  EVENT_SOURCE: z.enum(['mock', 'kick']).default('mock'),
+  EVENT_SOURCE: z.enum(['mock', 'kick', 'kick-ws']).default('mock'),
   ENABLE_DEBUG_ENDPOINT: boolFromEnv(false),
 
   KICK_CHANNEL: z.string().default('demo'),

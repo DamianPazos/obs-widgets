@@ -179,9 +179,13 @@ Que cualquiera pueda usarlo en su máquina fácilmente.
   sirve el build de widgets vía `@fastify/static`; ventana con el panel + ícono en la
   bandeja (cerrar = seguir en segundo plano); una sola instancia; entry `headless` y
   config de `electron-builder` (NSIS).
-- ⬜ **Fase 2**: eventos de Kick sin fricción (túnel automático embebido o fuente WS
-  saliente) para que sea "abrir y andar".
-- ⬜ **Fase 3**: autostart con el SO, panel de settings (credenciales de Kick), autoupdate.
+- ✅ **Fase 2**: fuente **WS saliente** (`KickWsSource`, `EVENT_SOURCE=kick-ws`): la app se
+  conecta al WebSocket público de Kick y escucha follows/subs/regalos/chat/estado, sin
+  credenciales, sin túnel y sin webhooks (solo el slug del canal). Resuelve los ids del
+  canal/chatroom por el endpoint público y pollea el viewer_count. _(Vía no oficial;
+  probada en vivo: resuelve ids, conecta y suscribe.)_
+- ⬜ **Fase 3**: autostart con el SO, panel de settings (elegir canal/modo sin tocar
+  `.env`, credenciales de Kick), autoupdate + instalador publicado.
 
 ---
 

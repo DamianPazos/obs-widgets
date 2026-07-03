@@ -1,10 +1,10 @@
 import type { EventSource } from '@obs-widgets/core';
-import { KickEventSource, MockEventSource } from '@obs-widgets/kick';
+import { KickEventSource, KickWsSource, MockEventSource } from '@obs-widgets/kick';
 import type { AppConfig } from './config';
 
 export interface SourceBundle {
   source: EventSource;
-  /** Presente solo cuando la fuente es Kick (para rutear los webhooks). */
+  /** Presente solo cuando la fuente es Kick por webhooks (para rutearlos). */
   kick?: KickEventSource;
 }
 
@@ -24,6 +24,17 @@ export function createEventSource(config: AppConfig): SourceBundle {
       log: (message) => console.info(`[kick] ${message}`),
     });
     return { source: kick, kick };
+  }
+
+  // Conexión saliente al WS de Kick: sin credenciales, sin túnel, sin webhooks.
+  if (config.EVENT_SOURCE === 'kick-ws') {
+    return {
+      source: new KickWsSource({
+        channel: config.KICK_CHANNEL,
+        viewersPollMs: config.KICK_VIEWERS_POLL_MS,
+        log: (message) => console.info(`[kick-ws] ${message}`),
+      }),
+    };
   }
 
   return { source: new MockEventSource({ channel: config.KICK_CHANNEL }) };

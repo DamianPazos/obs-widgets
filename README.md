@@ -173,6 +173,25 @@ widget es un **lienzo** y las posiciones quedan guardadas en la URL (`layout=`).
 
 ## 🟢 Conectar con Kick (eventos reales)
 
+Hay dos modos:
+
+### Modo simple: `kick-ws` (sin credenciales ni túnel) — recomendado para empezar
+
+La app se **conecta al WebSocket público de Kick** y escucha follows, subs, regalos,
+chat y estado del stream. No necesitás credenciales, ni túnel, ni webhooks: solo el
+**slug del canal**.
+
+```env
+EVENT_SOURCE=kick-ws
+KICK_CHANNEL=tu_canal
+```
+
+Levantás con `pnpm dev` (o la app de escritorio) y listo. Es la vía **no oficial** (la
+que usan los overlays de terceros): puede cambiar si Kick modifica su front, pero es la
+más cómoda para uso personal.
+
+### Modo oficial: `kick` (API + webhooks)
+
 El servidor automatiza casi todo: con las credenciales de tu app obtiene el
 token, **resuelve el id del canal**, **se suscribe solo a los eventos** (follows
 y subs) y **descarga la clave pública** para verificar las firmas de los webhooks.
