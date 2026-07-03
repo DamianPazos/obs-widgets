@@ -167,6 +167,7 @@ Ampliar el catálogo.
 **Ideas / Historias**
 
 - ✅ HU-5.0 — Tiempo en vivo (uptime): cuenta el tiempo de stream, se prende/apaga solo.
+- ✅ HU-5.6 — Contador de espectadores: muestra en vivo la audiencia (polling de Kick + snapshot).
 - ⬜ HU-5.1 — Meta de seguidores (barra de progreso).
 - ⬜ HU-5.2 — Último seguidor / último sub persistente.
 - ⬜ HU-5.3 — Chat overlay.

@@ -20,6 +20,7 @@ export function createEventSource(config: AppConfig): SourceBundle {
       publicKeyPem: config.KICK_WEBHOOK_PUBLIC_KEY,
       clientId: config.KICK_CLIENT_ID,
       clientSecret: config.KICK_CLIENT_SECRET,
+      viewersPollMs: config.KICK_VIEWERS_POLL_MS,
       log: (message) => console.info(`[kick] ${message}`),
     });
     return { source: kick, kick };

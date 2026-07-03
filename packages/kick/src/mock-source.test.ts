@@ -6,8 +6,8 @@ describe('MockEventSource', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('emite un stream.status inicial y follower.new en el intervalo', async () => {
-    const source = new MockEventSource({ channel: 'demo', intervalMs: 1000 });
+  it('emite estado inicial (status + viewers) y follower.new en el intervalo', async () => {
+    const source = new MockEventSource({ channel: 'demo', intervalMs: 1000, viewersMs: 2000 });
     const received: WidgetEvent[] = [];
     source.onEvent((e) => received.push(e));
 
@@ -20,8 +20,9 @@ describe('MockEventSource', () => {
       expect(WidgetEventSchema.safeParse(event).success).toBe(true);
     }
 
-    // Estado inicial de stream + 3 seguidores en 3 segundos.
+    // Estado inicial de stream + espectadores + 3 seguidores en 3 segundos.
     expect(received[0]?.type).toBe('stream.status');
+    expect(received.some((e) => e.type === 'stream.viewers')).toBe(true);
     expect(received.filter((e) => e.type === 'follower.new')).toHaveLength(3);
   });
 });

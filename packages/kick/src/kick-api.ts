@@ -102,17 +102,25 @@ export class KickApiClient {
     return id;
   }
 
-  /** Estado actual del stream del canal (en vivo + inicio), leído de /channels. */
-  async getStreamStatus(slug: string): Promise<{ live: boolean; startedAt?: string }> {
+  /**
+   * Estado actual del stream del canal (en vivo + inicio + espectadores),
+   * leído de /channels.
+   */
+  async getStreamStatus(
+    slug: string,
+  ): Promise<{ live: boolean; startedAt?: string; viewers?: number }> {
     const res = await this.authFetch(`${API_BASE}/channels?slug=${encodeURIComponent(slug)}`);
     if (!res.ok) {
       throw new Error(`Kick: no se pudo leer el estado del canal "${slug}" (${res.status})`);
     }
     const json = (await res.json()) as {
-      data?: Array<{ stream?: { is_live?: boolean; start_time?: string } }>;
+      data?: Array<{
+        stream?: { is_live?: boolean; start_time?: string; viewer_count?: number };
+      }>;
     };
     const stream = json.data?.[0]?.stream;
-    return { live: Boolean(stream?.is_live), startedAt: stream?.start_time };
+    const viewers = typeof stream?.viewer_count === 'number' ? stream.viewer_count : undefined;
+    return { live: Boolean(stream?.is_live), startedAt: stream?.start_time, viewers };
   }
 
   /** Lista las suscripciones de eventos existentes de la app. */

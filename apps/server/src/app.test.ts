@@ -12,6 +12,7 @@ const config: AppConfig = {
   ENABLE_DEBUG_ENDPOINT: true,
   KICK_CHANNEL: 'demo',
   KICK_VERIFY_SIGNATURE: false,
+  KICK_VIEWERS_POLL_MS: 0,
 };
 
 describe('server app', () => {

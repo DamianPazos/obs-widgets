@@ -21,6 +21,8 @@ const EnvSchema = z.object({
   PUBLIC_URL: z.string().url().optional(),
   KICK_VERIFY_SIGNATURE: boolFromEnv(true),
   KICK_WEBHOOK_PUBLIC_KEY: z.string().optional(),
+  /** Cada cuánto consultar los espectadores (ms). 0 desactiva el polling. */
+  KICK_VIEWERS_POLL_MS: z.coerce.number().int().nonnegative().default(30_000),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

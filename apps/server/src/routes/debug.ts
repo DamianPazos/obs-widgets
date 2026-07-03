@@ -10,6 +10,7 @@ const EmitBodySchema = z.object({
   username: z.string().default('probador'),
   message: z.string().optional(),
   live: z.boolean().optional(),
+  viewers: z.number().int().nonnegative().optional(),
 });
 
 /**
@@ -24,7 +25,7 @@ export function registerDebugRoute(app: FastifyInstance, bus: EventBus, config: 
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
-    const { type, channel, username, message, live } = parsed.data;
+    const { type, channel, username, message, live, viewers } = parsed.data;
     const target = channel ?? config.KICK_CHANNEL;
 
     let event: WidgetEvent;
@@ -44,6 +45,13 @@ export function registerDebugRoute(app: FastifyInstance, bus: EventBus, config: 
           type,
           channel: target,
           payload: { live: live ?? true, startedAt: new Date().toISOString() },
+        });
+        break;
+      case 'stream.viewers':
+        event = makeEvent({
+          type,
+          channel: target,
+          payload: { viewers: viewers ?? 100, live: live ?? true },
         });
         break;
       default:

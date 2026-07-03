@@ -1,4 +1,9 @@
-import { BaseEventSource, makeEvent, type StreamStatusEvent } from '@obs-widgets/core';
+import {
+  BaseEventSource,
+  makeEvent,
+  type StreamStatusEvent,
+  type StreamViewersEvent,
+} from '@obs-widgets/core';
 import { KickApiClient, type KickEventSubscription } from './kick-api';
 import {
   DEFAULT_KICK_EVENTS,
@@ -19,6 +24,12 @@ export interface KickSourceOptions {
   clientSecret?: string;
   /** Eventos a los que suscribirse. Por defecto follows + subs. */
   events?: KickEventSubscription[];
+  /**
+   * Cada cuánto consultar la cantidad de espectadores (ms). Los webhooks no
+   * mandan viewer count, así que se hace polling de /channels. Por defecto 30s.
+   * `0` desactiva el polling.
+   */
+  viewersPollMs?: number;
   /** Logger opcional. */
   log?: (message: string) => void;
 }
@@ -39,6 +50,7 @@ export class KickEventSource extends BaseEventSource {
   readonly name = 'kick';
   private api: KickApiClient | null = null;
   private publicKeyPem?: string;
+  private viewersTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly options: KickSourceOptions) {
     super();
@@ -77,11 +89,14 @@ export class KickEventSource extends BaseEventSource {
           makeEvent<StreamStatusEvent>({
             type: 'stream.status',
             channel: this.options.channel,
-            payload: status,
+            payload: { live: status.live, startedAt: status.startedAt },
           }),
         );
+        this.emitViewers(status.live, status.viewers);
         log(`Kick: estado inicial del stream → ${status.live ? 'EN VIVO' : 'offline'}.`);
       }
+
+      this.startViewersPolling(log);
       return;
     }
 
@@ -99,7 +114,40 @@ export class KickEventSource extends BaseEventSource {
   }
 
   async stop(): Promise<void> {
-    /* los webhooks son entrantes: nada que cerrar. */
+    if (this.viewersTimer) {
+      clearInterval(this.viewersTimer);
+      this.viewersTimer = null;
+    }
+  }
+
+  /** Emite un evento de espectadores (0 si el canal no está en vivo). */
+  private emitViewers(live: boolean, viewers?: number): void {
+    this.emit(
+      makeEvent<StreamViewersEvent>({
+        type: 'stream.viewers',
+        channel: this.options.channel,
+        payload: { viewers: live ? (viewers ?? 0) : 0, live },
+      }),
+    );
+  }
+
+  /** Consulta periódicamente la cantidad de espectadores vía /channels. */
+  private startViewersPolling(log: (message: string) => void): void {
+    const intervalMs = this.options.viewersPollMs ?? 30_000;
+    if (intervalMs <= 0) return;
+
+    const poll = async (): Promise<void> => {
+      if (!this.api) return;
+      try {
+        const status = await this.api.getStreamStatus(this.options.channel);
+        this.emitViewers(status.live, status.viewers);
+      } catch {
+        /* fallo transitorio de red/API: reintenta en el próximo tick. */
+      }
+    };
+
+    this.viewersTimer = setInterval(() => void poll(), intervalMs);
+    log(`Kick: polling de espectadores cada ${Math.round(intervalMs / 1000)}s.`);
   }
 
   /**

@@ -1,24 +1,33 @@
-import type { StreamStatusEvent, WidgetEvent } from '@obs-widgets/core';
+import type { StreamStatusEvent, StreamViewersEvent, WidgetEvent } from '@obs-widgets/core';
 
 /**
  * Guarda el último estado de stream conocido por canal.
  *
  * Sirve para mandarle un "snapshot" a los widgets que se conectan DESPUÉS de
- * que el stream ya arrancó: los webhooks solo avisan transiciones, así que sin
- * esto un widget abierto a mitad de stream no sabría que está en vivo.
+ * que el stream ya arrancó: los webhooks (y el polling de espectadores) solo
+ * avisan cambios, así que sin esto un widget abierto a mitad de stream no
+ * sabría que está en vivo ni cuántos espectadores hay.
  */
 export class StreamStateStore {
-  private readonly byChannel = new Map<string, StreamStatusEvent>();
+  private readonly status = new Map<string, StreamStatusEvent>();
+  private readonly viewers = new Map<string, StreamViewersEvent>();
 
-  /** Actualiza el estado si el evento es de tipo stream.status. */
+  /** Actualiza el estado si el evento es "sticky" (status / viewers). */
   update(event: WidgetEvent): void {
     if (event.type === 'stream.status') {
-      this.byChannel.set(event.channel, event);
+      this.status.set(event.channel, event);
+    } else if (event.type === 'stream.viewers') {
+      this.viewers.set(event.channel, event);
     }
   }
 
-  /** Último estado conocido para un canal, si hay. */
+  /** Último estado (en vivo/offline) conocido para un canal, si hay. */
   get(channel: string): StreamStatusEvent | undefined {
-    return this.byChannel.get(channel);
+    return this.status.get(channel);
+  }
+
+  /** Última cantidad de espectadores conocida para un canal, si hay. */
+  getViewers(channel: string): StreamViewersEvent | undefined {
+    return this.viewers.get(channel);
   }
 }

@@ -13,6 +13,7 @@ export const WIDGET_EVENT_TYPES = [
   'subscription.new',
   'chat.message',
   'stream.status',
+  'stream.viewers',
 ] as const;
 
 export type WidgetEventType = (typeof WIDGET_EVENT_TYPES)[number];
@@ -66,11 +67,23 @@ export const StreamStatusEventSchema = z.object({
   }),
 });
 
+export const StreamViewersEventSchema = z.object({
+  ...baseFields,
+  type: z.literal('stream.viewers'),
+  payload: z.object({
+    /** Cantidad de espectadores en vivo. */
+    viewers: z.number().int().nonnegative(),
+    /** Si el canal está en vivo (para ocultar cuando no lo está). */
+    live: z.boolean().default(true),
+  }),
+});
+
 export const WidgetEventSchema = z.discriminatedUnion('type', [
   FollowerNewEventSchema,
   SubscriptionNewEventSchema,
   ChatMessageEventSchema,
   StreamStatusEventSchema,
+  StreamViewersEventSchema,
 ]);
 
 export type WidgetEvent = z.infer<typeof WidgetEventSchema>;
@@ -78,6 +91,7 @@ export type FollowerNewEvent = z.infer<typeof FollowerNewEventSchema>;
 export type SubscriptionNewEvent = z.infer<typeof SubscriptionNewEventSchema>;
 export type ChatMessageEvent = z.infer<typeof ChatMessageEventSchema>;
 export type StreamStatusEvent = z.infer<typeof StreamStatusEventSchema>;
+export type StreamViewersEvent = z.infer<typeof StreamViewersEventSchema>;
 
 /** Helper para construir un evento con timestamp por defecto. */
 export function makeEvent<T extends WidgetEvent>(

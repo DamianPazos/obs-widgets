@@ -41,6 +41,12 @@ export function registerWsRoute(
         const message: ServerMessage = { kind: 'event', event: snapshot };
         socket.send(JSON.stringify(message));
       }
+
+      const viewers = streamState.getViewers(channel);
+      if (viewers && (!events || events.includes('stream.viewers'))) {
+        const message: ServerMessage = { kind: 'event', event: viewers };
+        socket.send(JSON.stringify(message));
+      }
     };
 
     // Suscripción inmediata vía query string (lo más cómodo para OBS).
