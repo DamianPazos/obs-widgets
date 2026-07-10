@@ -1,7 +1,11 @@
 <script lang="ts">
   import { decodeScene, instanceUrl } from '../lib/scene';
 
-  const scene = decodeScene(new URLSearchParams(window.location.search).get('scene'));
+  const params = new URLSearchParams(window.location.search);
+  const scene = decodeScene(params.get('scene'));
+  // Escena de prueba: propaga `preview=1` a cada instancia (datos de demo).
+  const extra: Record<string, string> =
+    params.get('preview') === '1' ? { fit: '1', preview: '1' } : { fit: '1' };
 </script>
 
 <div class="scene">
@@ -11,7 +15,7 @@
       class="instance"
       style="left: {inst.rect.x}%; top: {inst.rect.y}%; width: {inst.rect.w}%; height: {inst.rect
         .h}%;"
-      src={instanceUrl(inst, { fit: '1' })}
+      src={instanceUrl(inst, extra)}
     ></iframe>
   {/each}
 </div>

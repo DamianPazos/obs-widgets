@@ -2,6 +2,7 @@
   import { getWidget, widgets } from '../lib/registry';
   import { clamp } from '../lib/layout';
   import WidgetConfig from './WidgetConfig.svelte';
+  import UrlLinks from './UrlLinks.svelte';
   import {
     CANVAS_PRESETS,
     decodeScene,
@@ -31,12 +32,13 @@
   let editingId = $state<string | null>(null);
   let addChoice = $state<string>(widgets[0]?.id ?? '');
   let importUrl = $state('');
-  let copied = $state(false);
   let canvasEl: HTMLElement;
 
   const sceneUrl = $derived(
     `${window.location.origin}/?scene=${encodeScene({ instances, canvas })}`,
   );
+  // Escena de prueba: mismo lienzo pero con datos de demo en cada widget.
+  const sceneTestUrl = $derived(`${sceneUrl}&preview=1`);
   const selected = $derived(instances.find((i) => i.id === selectedId) ?? null);
   const editing = $derived(instances.find((i) => i.id === editingId) ?? null);
 
@@ -110,12 +112,6 @@
     instances = [];
     selectedId = null;
     editingId = null;
-  }
-
-  async function copyScene(): Promise<void> {
-    await navigator.clipboard.writeText(sceneUrl);
-    copied = true;
-    setTimeout(() => (copied = false), 1500);
   }
 
   function startMove(inst: SceneInstance, event: PointerEvent): void {
@@ -272,11 +268,8 @@
         </div>
       </div>
 
-      <div class="url">
-        <input readonly value={sceneUrl} />
-        <button class="primary" onclick={copyScene}
-          >{copied ? '¡Copiado!' : 'Copiar para OBS'}</button
-        >
+      <div class="scene-links">
+        <UrlLinks prodUrl={sceneUrl} testUrl={sceneTestUrl} />
       </div>
     </section>
   </div>
@@ -533,22 +526,6 @@
     right: -7px;
     bottom: -7px;
     cursor: nwse-resize;
-  }
-
-  .url {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .url input {
-    flex: 1;
-    min-width: 0;
-    background: #0d0f14;
-    border: 1px solid #2a2f3a;
-    color: #dfe4ea;
-    border-radius: 8px;
-    padding: 0.5rem 0.6rem;
-    font-size: 0.8rem;
   }
 
   button.primary.full {

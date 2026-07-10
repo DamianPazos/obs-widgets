@@ -1,7 +1,13 @@
 <script lang="ts">
-  import { widgets } from '../lib/registry';
+  import { getWidget, widgets } from '../lib/registry';
+  import WidgetConfig from './WidgetConfig.svelte';
+  import UrlLinks from './UrlLinks.svelte';
 
   let copiedId = $state<string | null>(null);
+  let editingId = $state<string | null>(null);
+  let editParams = $state<Record<string, string>>({});
+
+  const editing = $derived(editingId ? getWidget(editingId) : null);
 
   // Sin `channel`: el widget sigue el canal configurado en la app/server.
   function widgetUrl(id: string): string {
@@ -13,6 +19,24 @@
     copiedId = id;
     setTimeout(() => (copiedId = null), 1500);
   }
+
+  function openConfig(id: string): void {
+    editingId = id;
+    editParams = {};
+  }
+
+  function closeConfig(): void {
+    editingId = null;
+  }
+
+  // Links (producción / prueba) reflejando lo que se configura en el modal.
+  const editProdUrl = $derived.by(() => {
+    if (!editingId) return '';
+    const usp = new URLSearchParams({ widget: editingId });
+    for (const [k, v] of Object.entries(editParams)) usp.set(k, v);
+    return `${window.location.origin}/?${usp.toString()}`;
+  });
+  const editTestUrl = $derived(`${editProdUrl}&preview=1`);
 </script>
 
 <main>
@@ -61,7 +85,7 @@
           </button>
         </div>
         <div class="actions">
-          <a class="configure" href={`?config=${widget.id}`}>⚙ Personalizar</a>
+          <button class="configure" onclick={() => openConfig(widget.id)}>⚙ Personalizar</button>
           <a
             class="preview"
             href={`${widgetUrl(widget.id)}&preview=1`}
@@ -75,6 +99,35 @@
     {/each}
   </ul>
 </main>
+
+{#if editing}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="modal-backdrop" onclick={closeConfig}>
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-head">
+        <h2>Personalizar: {editing.name}</h2>
+        <button class="close" title="Cerrar" onclick={closeConfig}>✕</button>
+      </div>
+      <div class="modal-body">
+        {#key editing.id}
+          <WidgetConfig
+            widgetId={editing.id}
+            params={editParams}
+            onChange={(p) => (editParams = p)}
+          />
+        {/key}
+        <div class="modal-links">
+          <UrlLinks prodUrl={editProdUrl} testUrl={editTestUrl} />
+        </div>
+      </div>
+      <div class="modal-foot">
+        <p class="hint">Copiá el link que quieras y pegalo en OBS como Browser Source.</p>
+        <button class="primary" onclick={closeConfig}>Listo</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   main {
@@ -225,11 +278,14 @@
   .configure {
     color: #06210a;
     background: #53fc18;
+    border: none;
+    font-family: inherit;
     text-decoration: none;
     font-size: 0.85rem;
     font-weight: 600;
     padding: 0.35rem 0.7rem;
     border-radius: 8px;
+    cursor: pointer;
   }
 
   .configure:hover {
@@ -244,5 +300,85 @@
 
   .preview:hover {
     text-decoration: underline;
+  }
+
+  /* --- Modal de personalización --- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(6, 8, 12, 0.72);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3vh 1.5rem;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: min(1000px, 100%);
+    background: #12151b;
+    border: 1px solid #262b36;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #262b36;
+  }
+
+  .modal-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+
+  .close {
+    background: transparent;
+    border: 1px solid #2a2f3a;
+    color: #aeb6c2;
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #262b36;
+  }
+
+  .modal-foot .hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #8b94a3;
+  }
+
+  .modal .primary {
+    background: #53fc18;
+    color: #06210a;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
   }
 </style>
