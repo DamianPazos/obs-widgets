@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import {
   BaseEventSource,
   makeEvent,
+  type FollowerNewEvent,
   type StreamStatusEvent,
   type StreamViewersEvent,
   type WidgetEvent,
@@ -33,6 +34,8 @@ export interface KickChannelInfo {
   live: boolean;
   viewers?: number;
   startedAt?: string;
+  /** Cantidad actual de seguidores (para detectar follows por diferencia). */
+  followersCount?: number;
 }
 
 /** Resuelve los ids/estado de un canal a partir de su slug. */
@@ -41,6 +44,7 @@ export type KickChannelResolver = (slug: string) => Promise<KickChannelInfo>;
 interface RawChannel {
   id?: number;
   chatroom?: { id?: number };
+  followers_count?: number;
   livestream?: {
     is_live?: boolean;
     viewer_count?: number;
@@ -61,6 +65,7 @@ export function parseChannelInfo(json: unknown, slug: string): KickChannelInfo {
     live: Boolean(c.livestream?.is_live),
     viewers: c.livestream?.viewer_count,
     startedAt: c.livestream?.created_at ?? c.livestream?.start_time,
+    followersCount: typeof c.followers_count === 'number' ? c.followers_count : undefined,
   };
 }
 
@@ -92,7 +97,57 @@ export async function fetchKickChannelInfo(slug: string): Promise<KickChannelInf
 interface FollowersUpdatedPayload {
   username?: string;
   followed?: boolean;
+  followersCount?: number;
+  followers_count?: number;
+  follower?: { username?: string };
+  user?: { username?: string };
 }
+
+/**
+ * Nombre genérico cuando Kick no informa quién siguió. La vía no oficial (WS
+ * público / conteo) **no expone el nombre** del seguidor; para nombres reales hay
+ * que usar el modo oficial (webhooks, `channel.followed`).
+ */
+export const ANON_FOLLOWER = 'alguien';
+
+/**
+ * Procesa un `FollowersUpdated` del WS público de Kick (vía instantánea, si Kick
+ * lo emite).
+ *
+ * Ese evento es limitado: **no trae el nombre** de quien siguió (a veces solo el
+ * contador) y se dispara tanto en follow como en unfollow. Por eso:
+ *  - Distinguimos follow (el contador sube) de unfollow (baja) comparando con el
+ *    conteo previo (`prevCount`), sembrado al arrancar con `followers_count`.
+ *  - Si el evento no trae contador, asumimos follow (salvo `followed:false`).
+ *  - Si no hay nombre, usamos un texto genérico (el schema exige `username` no vacío).
+ *
+ * Devuelve el evento a emitir (o `null`) y el nuevo conteo para actualizar el estado.
+ */
+export function mapFollowersUpdated(
+  data: unknown,
+  channel: string,
+  prevCount: number | null,
+): { event: FollowerNewEvent | null; count: number | null } {
+  const p = (data ?? {}) as FollowersUpdatedPayload;
+  const raw = p.followersCount ?? p.followers_count;
+  const count = typeof raw === 'number' ? raw : prevCount;
+
+  // Unfollow explícito: nunca dispara.
+  if (p.followed === false) return { event: null, count };
+  // Si el evento trae contador y no subió respecto al previo, fue unfollow/sin cambio.
+  if (typeof raw === 'number' && prevCount != null && raw <= prevCount) {
+    return { event: null, count };
+  }
+
+  const name = p.username ?? p.follower?.username ?? p.user?.username;
+  const username = name && name.trim() ? name : ANON_FOLLOWER;
+
+  return {
+    event: makeEvent<FollowerNewEvent>({ type: 'follower.new', channel, payload: { username } }),
+    count,
+  };
+}
+
 interface SubscriptionPayload {
   username?: string;
   months?: number;
@@ -123,16 +178,8 @@ export function mapKickWsEvent(
   const payload = (data ?? {}) as Record<string, unknown>;
 
   switch (name) {
-    case 'FollowersUpdated': {
-      const p = payload as FollowersUpdatedPayload;
-      // followed=false es un unfollow: lo ignoramos.
-      if (p.followed === false || !p.username) return null;
-      return makeEvent<WidgetEvent>({
-        type: 'follower.new',
-        channel,
-        payload: { username: p.username },
-      });
-    }
+    // `FollowersUpdated` se maneja aparte en la clase (necesita estado: el conteo
+    // previo para distinguir follow de unfollow). Ver `mapFollowersUpdated`.
 
     case 'SubscriptionEvent': {
       const p = payload as SubscriptionPayload;
@@ -188,7 +235,11 @@ export function mapKickWsEvent(
 export interface KickWsSourceOptions {
   /** Slug del canal a escuchar. */
   channel: string;
-  /** Cada cuánto consultar espectadores (ms). 0 desactiva. Por defecto 30s. */
+  /**
+   * Cada cuánto consultar el endpoint del canal (ms). 0 desactiva. Por defecto 15s.
+   * Además de espectadores, este poll detecta follows nuevos por diferencia de
+   * `followers_count` (Kick no emite los follows por el WS público).
+   */
   viewersPollMs?: number;
   /** URL del WebSocket (para tests). */
   wsUrl?: string;
@@ -209,6 +260,8 @@ export class KickWsSource extends BaseEventSource {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private retry = 0;
   private closedByUser = false;
+  /** Último conteo de seguidores conocido, para detectar follows por diferencia. */
+  private lastFollowers: number | null = null;
 
   constructor(private readonly options: KickWsSourceOptions) {
     super();
@@ -224,6 +277,8 @@ export class KickWsSource extends BaseEventSource {
 
   async start(): Promise<void> {
     this.info = await this.resolve(this.options.channel);
+    // Semilla del conteo de seguidores: baseline para detectar el primer follow.
+    this.lastFollowers = this.info.followersCount ?? null;
     this.log(
       `Kick WS: canal "${this.options.channel}" (channel ${this.info.channelId}, ` +
         `chatroom ${this.info.chatroomId}). Estado: ${this.info.live ? 'EN VIVO' : 'offline'}.`,
@@ -240,7 +295,7 @@ export class KickWsSource extends BaseEventSource {
     this.emitViewers(this.info.live, this.info.viewers);
 
     this.connect();
-    this.startViewersPolling();
+    this.startPolling();
   }
 
   async stop(): Promise<void> {
@@ -307,6 +362,19 @@ export class KickWsSource extends BaseEventSource {
       }
     }
 
+    // `FollowersUpdated` necesita estado (conteo previo): se maneja aparte.
+    const name = event.split('\\').pop() ?? event;
+    if (name === 'FollowersUpdated') {
+      const { event: ev, count } = mapFollowersUpdated(
+        data,
+        this.options.channel,
+        this.lastFollowers,
+      );
+      this.lastFollowers = count;
+      if (ev) this.emit(ev);
+      return;
+    }
+
     const mapped = mapKickWsEvent(event, data, this.options.channel);
     if (mapped) this.emit(mapped);
   }
@@ -321,18 +389,43 @@ export class KickWsSource extends BaseEventSource {
     );
   }
 
-  private startViewersPolling(): void {
-    const intervalMs = this.options.viewersPollMs ?? 30_000;
+  private startPolling(): void {
+    const intervalMs = this.options.viewersPollMs ?? 15_000;
     if (intervalMs <= 0) return;
     this.viewersTimer = setInterval(() => {
       void this.resolve(this.options.channel)
         .then((info) => {
           this.info = info;
           this.emitViewers(info.live, info.viewers);
+          this.detectFollowsByCount(info.followersCount);
         })
         .catch(() => {
           /* fallo transitorio: reintenta en el próximo tick. */
         });
     }, intervalMs);
+  }
+
+  /**
+   * Detecta follows nuevos comparando el conteo actual con el último conocido.
+   * Es la vía **fiable** en kick-ws: Kick no transmite los follows por el WS
+   * público, pero el `followers_count` del endpoint sube. No sabemos el nombre,
+   * así que usamos uno genérico (para nombres reales, usar el modo oficial).
+   */
+  private detectFollowsByCount(count?: number): void {
+    if (typeof count !== 'number') return;
+    const prev = this.lastFollowers;
+    this.lastFollowers = count;
+    if (prev == null || count <= prev) return;
+    // Cap para no inundar si el conteo saltó mucho entre polls.
+    const nuevos = Math.min(count - prev, 3);
+    for (let i = 0; i < nuevos; i++) {
+      this.emit(
+        makeEvent<FollowerNewEvent>({
+          type: 'follower.new',
+          channel: this.options.channel,
+          payload: { username: ANON_FOLLOWER },
+        }),
+      );
+    }
   }
 }

@@ -21,8 +21,12 @@ const EnvSchema = z.object({
   PUBLIC_URL: z.string().url().optional(),
   KICK_VERIFY_SIGNATURE: boolFromEnv(true),
   KICK_WEBHOOK_PUBLIC_KEY: z.string().optional(),
-  /** Cada cuánto consultar los espectadores (ms). 0 desactiva el polling. */
-  KICK_VIEWERS_POLL_MS: z.coerce.number().int().nonnegative().default(30_000),
+  /**
+   * Cada cuánto consultar el endpoint del canal (ms). 0 desactiva el polling.
+   * En `kick-ws` este poll también detecta follows nuevos (Kick no los emite por
+   * el WS público), así que un intervalo corto = alerta de follow más rápida.
+   */
+  KICK_VIEWERS_POLL_MS: z.coerce.number().int().nonnegative().default(15_000),
   /** Archivo donde se persisten los tokens de usuario del OAuth de Kick. */
   KICK_TOKENS_FILE: z.string().default('.kick-tokens.json'),
 });

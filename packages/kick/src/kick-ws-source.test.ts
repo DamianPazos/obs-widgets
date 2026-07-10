@@ -1,32 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import { WidgetEventSchema } from '@obs-widgets/core';
-import { mapKickWsEvent } from './kick-ws-source';
+import { ANON_FOLLOWER, mapFollowersUpdated, mapKickWsEvent } from './kick-ws-source';
 
-describe('mapKickWsEvent', () => {
-  it('mapea FollowersUpdated (followed) a follower.new', () => {
-    const event = mapKickWsEvent(
-      'App\\Events\\FollowersUpdated',
-      { username: 'juan', followed: true, followersCount: 10 },
-      'demo',
-    );
-    expect(event).toMatchObject({
-      type: 'follower.new',
-      channel: 'demo',
-      payload: { username: 'juan' },
-    });
+describe('mapFollowersUpdated', () => {
+  it('dispara follower.new cuando el conteo sube', () => {
+    const { event, count } = mapFollowersUpdated({ followers_count: 11 }, 'demo', 10);
+    expect(event).toMatchObject({ type: 'follower.new', channel: 'demo' });
+    expect(count).toBe(11);
     expect(WidgetEventSchema.safeParse(event).success).toBe(true);
   });
 
-  it('ignora un unfollow (followed=false)', () => {
+  it('usa el nombre si viene y un genérico si no', () => {
     expect(
-      mapKickWsEvent(
-        'App\\Events\\FollowersUpdated',
-        { username: 'juan', followed: false },
-        'demo',
-      ),
-    ).toBeNull();
+      mapFollowersUpdated({ username: 'juan', followers_count: 11 }, 'demo', 10).event,
+    ).toMatchObject({ payload: { username: 'juan' } });
+    // Sin nombre: texto genérico (el schema exige username no vacío).
+    const anon = mapFollowersUpdated({ followers_count: 11 }, 'demo', 10).event;
+    expect(anon?.payload.username).toBe(ANON_FOLLOWER);
+    expect(WidgetEventSchema.safeParse(anon).success).toBe(true);
   });
 
+  it('ignora un unfollow (el conteo baja)', () => {
+    const { event, count } = mapFollowersUpdated({ followers_count: 9 }, 'demo', 10);
+    expect(event).toBeNull();
+    expect(count).toBe(9);
+  });
+
+  it('ignora un unfollow explícito (followed=false)', () => {
+    expect(mapFollowersUpdated({ username: 'juan', followed: false }, 'demo', 10).event).toBeNull();
+  });
+
+  it('dispara sin baseline (primer evento) o sin contador en el payload', () => {
+    // Sin conteo previo conocido.
+    expect(mapFollowersUpdated({ followers_count: 5 }, 'demo', null).event).not.toBeNull();
+    // El evento no trae contador: asumimos follow.
+    expect(mapFollowersUpdated({ username: 'ale' }, 'demo', 10).event).toMatchObject({
+      payload: { username: 'ale' },
+    });
+  });
+});
+
+describe('mapKickWsEvent', () => {
   it('mapea SubscriptionEvent nueva vs renovación según los meses', () => {
     const nueva = mapKickWsEvent(
       'App\\Events\\SubscriptionEvent',

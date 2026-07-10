@@ -187,8 +187,8 @@ Hay dos modos:
 
 ### Modo simple: `kick-ws` (sin credenciales ni túnel) — recomendado para empezar
 
-La app se **conecta al WebSocket público de Kick** y escucha follows, subs, regalos,
-chat y estado del stream. No necesitás credenciales, ni túnel, ni webhooks: solo el
+La app se **conecta al WebSocket público de Kick** y escucha subs, regalos, chat y
+estado del stream. No necesitás credenciales, ni túnel, ni webhooks: solo el
 **slug del canal**.
 
 ```env
@@ -199,6 +199,12 @@ KICK_CHANNEL=tu_canal
 Levantás con `pnpm dev` (o la app de escritorio) y listo. Es la vía **no oficial** (la
 que usan los overlays de terceros): puede cambiar si Kick modifica su front, pero es la
 más cómoda para uso personal.
+
+> ⚠️ **Follows en `kick-ws`**: Kick **no transmite los follows por el WS público**, así
+> que la alerta de nuevo seguidor se dispara detectando que sube el contador de
+> seguidores del canal (se consulta cada ~15s). Por eso aparece con un pequeño retraso y
+> **sin el nombre** de quien siguió. Si querés el **nombre real** del seguidor al instante,
+> usá el **modo oficial** (`kick`, con webhooks): el evento `channel.followed` sí lo trae.
 
 ### Modo oficial: `kick` (API + webhooks)
 
