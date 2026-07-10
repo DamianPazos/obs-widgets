@@ -1,7 +1,10 @@
 <script lang="ts">
   import { getWidget, widgets } from '../lib/registry';
+  import { obs } from '../lib/desktop';
   import WidgetConfig from './WidgetConfig.svelte';
   import UrlLinks from './UrlLinks.svelte';
+
+  const isDesktop = obs() != null;
 
   let copiedId = $state<string | null>(null);
   let editingId = $state<string | null>(null);
@@ -51,6 +54,12 @@
       <a href="?builder">🎬 Constructor de escenas</a> — combiná varios widgets en una sola Browser Source,
       posicionados y dimensionados a gusto.
     </p>
+    {#if isDesktop}
+      <p class="scene-cta">
+        <a href="?connect">🔌 Conexión y configuración</a> — elegí la fuente de eventos y activá el nombre
+        real de seguidores (modo oficial).
+      </p>
+    {/if}
   </header>
 
   <ul class="grid">

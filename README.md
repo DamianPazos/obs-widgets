@@ -79,15 +79,20 @@ pnpm --filter @obs-widgets/desktop dev      # compila widgets + abre la app
 ```
 
 - **Server en la bandeja**: cerrás la ventana y la app queda como ícono en la bandeja
-  (el server sigue vivo mientras streameás). Desde ahí: _Abrir panel_, _Configuración_,
-  _Copiar URL base_ o _Salir_.
-- **Configuración sin `.env`**: en _Configuración_ elegís la **fuente** (mock / Kick WS /
-  Kick oficial), el **canal**, el **puerto** y si **arranca con Windows**. Se aplica al
-  instante (reinicia la fuente sin cerrar la app). Los widgets **siguen solos** ese canal:
-  las _Browser Source_ de OBS no necesitan `channel=`, así pasás de demo a real sin tocarlas.
-- **Kick sin fricción**: con el modo **Kick (WS)** la app se conecta al WebSocket de Kick
-  usando la red de Chromium (resuelve el canal aunque el endpoint esté tras Cloudflare) —
-  sin credenciales ni túnel.
+  (el server sigue vivo mientras streameás). Desde ahí: _Abrir panel_, _Conexión y
+  configuración_, _Copiar URL base_ o _Salir_.
+- **Panel de Conexión** (sin `.env`): en _Conexión y configuración_ elegís la **fuente**
+  (Demo / Kick simple / Kick oficial), el **canal**, el **puerto** y si **arranca con
+  Windows**, y ves el **estado en vivo** (túnel, en vivo/espectadores, último evento). Se
+  aplica al instante. Los widgets **siguen solos** ese canal: las _Browser Source_ de OBS
+  no necesitan `channel=`.
+- **Kick simple (WS), sin fricción**: la app se conecta al WebSocket de Kick usando la red
+  de Chromium (resuelve el canal aunque esté tras Cloudflare) — sin credenciales ni túnel.
+  Los follows llegan **sin nombre** (Kick no los emite por ahí; se muestra un mensaje).
+- **Kick oficial, con nombre real**: para que la alerta muestre el **nombre** del seguidor,
+  el panel de Conexión trae un **asistente**: pegás las credenciales de tu app de Kick y tu
+  authtoken + dominio de ngrok, y la app **levanta el túnel sola** y se **suscribe** a los
+  follows. Solo registrás la URL del webhook en el portal de Kick una vez (ver más abajo).
 - **Un solo origen local**: los widgets se sirven desde el mismo server, así que se
   conectan al WebSocket sin configurar nada (`ws://localhost:8787` por defecto).
 - **Auto-update**: la app instalada busca nuevas versiones en las Releases de GitHub, las
@@ -207,37 +212,45 @@ más cómoda para uso personal.
 > (parámetro _Mensaje_). Si querés el **nombre real** del seguidor al instante, usá el
 > **modo oficial** (`kick`, con webhooks): el evento `channel.followed` sí lo trae.
 
-### Modo oficial: `kick` (API + webhooks)
+### Modo oficial: `kick` (API + webhooks) — para el **nombre real** del seguidor
 
 El servidor automatiza casi todo: con las credenciales de tu app obtiene el
 token, **resuelve el id del canal**, **se suscribe solo a los eventos** (follows
 y subs) y **descarga la clave pública** para verificar las firmas de los webhooks.
+Como los webhooks son _push_, necesitás una **URL pública estable** apuntando a tu PC.
 
-**1. Creá una app** en el [portal de desarrolladores de Kick](https://kick.com/settings/developer)
-y guardá `client_id` y `client_secret`.
+#### Desde la app de escritorio (recomendado — túnel automático)
 
-**2. Exponé el servidor con un túnel** (los webhooks necesitan una URL pública):
+El panel **Conexión y configuración** trae un asistente. Pasos de **una sola vez**:
 
-```bash
-ngrok http 8787          # o: cloudflared tunnel --url http://localhost:8787
-```
+1. Creá una app en el [portal de Kick](https://kick.com/settings/developer) →
+   `client_id` / `client_secret`.
+2. Creá una cuenta gratis en [ngrok](https://dashboard.ngrok.com/signup), copiá tu
+   [authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) y reclamá tu
+   [dominio fijo gratis](https://dashboard.ngrok.com/domains).
+3. Pegá todo en el asistente y **Guardá**: la app **levanta el túnel sola** y se suscribe.
+4. Copiá la **URL de webhook** que muestra el panel (`https://<tu-dominio>/webhooks/kick`)
+   y registrala en el portal de Kick. Es **fija**, así que se hace una vez.
 
-**3. En el panel de Kick**, habilitá los webhooks y configurá el _Webhook URL_
-apuntando a `https://<tu-tunel>/webhooks/kick`.
+Después, cada sesión es automática: abrís la app y el túnel + la suscripción se levantan
+solos. El botón **Probar conexión** confirma que Kick puede llegar a tu webhook.
 
-**4. Completá `apps/server/.env`:**
+#### Manual (server/CLI, sin la app)
+
+**1.** Creá la app de Kick (client_id/secret). **2.** Exponé el server con un túnel
+(`ngrok http 8787` o `cloudflared`). **3.** Registrá `https://<tu-tunel>/webhooks/kick`
+en el portal de Kick. **4.** Completá `apps/server/.env`:
 
 ```env
 EVENT_SOURCE=kick
 KICK_CHANNEL=tu_canal
 KICK_CLIENT_ID=xxxx
 KICK_CLIENT_SECRET=xxxx
-PUBLIC_URL=https://tu-tunel.ngrok-free.app
 KICK_VERIFY_SIGNATURE=true
 ```
 
-**5. Levantá todo con `pnpm dev`.** En el log del server vas a ver la suscripción
-creada. Seguí el canal desde otra cuenta y la alerta aparece en `follower-alert`.
+**5. Levantá todo con `pnpm dev`.** En el log vas a ver la suscripción creada. Seguí el
+canal desde otra cuenta y la alerta aparece con el nombre real en `follower-alert`.
 
 > ⚠️ La API de Kick está en evolución. Los nombres/versiones de eventos y el
 > mapeo de payloads viven en [packages/kick/src/kick-webhooks.ts](packages/kick/src/kick-webhooks.ts)

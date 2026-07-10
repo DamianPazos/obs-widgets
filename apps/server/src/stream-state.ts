@@ -11,14 +11,22 @@ import type { StreamStatusEvent, StreamViewersEvent, WidgetEvent } from '@obs-wi
 export class StreamStateStore {
   private readonly status = new Map<string, StreamStatusEvent>();
   private readonly viewers = new Map<string, StreamViewersEvent>();
+  /** Último evento visto (de cualquier tipo), para el panel de estado. */
+  private lastEvent: { type: WidgetEvent['type']; at: string } | null = null;
 
   /** Actualiza el estado si el evento es "sticky" (status / viewers). */
   update(event: WidgetEvent): void {
+    this.lastEvent = { type: event.type, at: new Date().toISOString() };
     if (event.type === 'stream.status') {
       this.status.set(event.channel, event);
     } else if (event.type === 'stream.viewers') {
       this.viewers.set(event.channel, event);
     }
+  }
+
+  /** Último evento recibido (cualquier tipo), o `null` si todavía no llegó ninguno. */
+  getLastEvent(): { type: WidgetEvent['type']; at: string } | null {
+    return this.lastEvent;
   }
 
   /** Último estado (en vivo/offline) conocido para un canal, si hay. */

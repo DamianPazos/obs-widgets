@@ -26,7 +26,10 @@ hexagonal).
 
 - **`packages/kick` (Infraestructura).** Implementaciones concretas del puerto:
   - `MockEventSource`: genera eventos falsos (desarrollo/preview).
-  - `KickEventSource`: normaliza los webhooks de Kick a `WidgetEvent`.
+  - `KickWsSource`: se conecta **saliente** al WebSocket público de Kick (sin credenciales
+    ni túnel). Los follows no vienen por ahí, así que se detectan por el contador.
+  - `KickEventSource`: modo **oficial** — se suscribe por API y normaliza los webhooks de
+    Kick a `WidgetEvent` (el único que trae el **nombre** del seguidor).
 
 - **`apps/server` (Aplicación).** Orquesta: elige la fuente por configuración,
   la conecta a un `EventBus` y reparte los eventos a los widgets por WebSocket.
@@ -73,3 +76,7 @@ Todo apunta a `core`. Ni el dominio ni los widgets saben que existe Kick.
 - **Servidor relay en vez de conexión directa desde el navegador.** Permite
   verificar firmas, ocultar credenciales y soportar eventos que solo llegan por
   webhook. El puerto `EventSource` deja abierta la puerta a fuentes directas.
+- **Túnel embebido en el desktop (modo oficial).** Los webhooks de Kick necesitan una
+  URL pública estable. La app de escritorio levanta un túnel (`@ngrok/ngrok`, dominio
+  fijo) apuntando al server local, así el usuario no corre nada a mano. La URL del
+  webhook se registra una única vez en el portal de Kick (no se puede setear por API).

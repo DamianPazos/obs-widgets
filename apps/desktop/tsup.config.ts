@@ -7,8 +7,9 @@ export default defineConfig({
   platform: 'node',
   clean: true,
   sourcemap: true,
-  // Electron lo provee el runtime; el resto (server, fastify, etc.) se inlinea
-  // en el bundle para que la app sea autocontenida al empaquetar.
-  external: ['electron'],
+  // Electron lo provee el runtime; @ngrok/ngrok es un módulo nativo (.node) que no
+  // se puede bundlear (se empaqueta aparte). El resto (server, fastify, etc.) se
+  // inlinea en el bundle para que la app sea autocontenida.
+  external: ['electron', '@ngrok/ngrok'],
   noExternal: [/@obs-widgets\//],
 });

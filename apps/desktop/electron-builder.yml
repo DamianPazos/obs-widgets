@@ -4,11 +4,16 @@ directories:
   output: release
   buildResources: assets
 
-# El main ya viene bundleado (tsup), así que no necesitamos node_modules.
+# El main ya viene bundleado (tsup). La única dependencia de producción es
+# @ngrok/ngrok (módulo nativo), que electron-builder incluye automáticamente.
 files:
   - dist/**
-  - static/**
   - package.json
+
+# El binario nativo de ngrok (.node) no puede ir dentro del asar: se desempaqueta.
+asarUnpack:
+  - '**/*.node'
+  - '**/@ngrok/**'
 
 # El frontend de widgets y los íconos van como recursos junto al ejecutable.
 extraResources:

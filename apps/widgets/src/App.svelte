@@ -1,6 +1,7 @@
 <script lang="ts">
   import Builder from './components/Builder.svelte';
   import ConfigPanel from './components/ConfigPanel.svelte';
+  import Connect from './components/Connect.svelte';
   import Index from './components/Index.svelte';
   import SceneView from './components/SceneView.svelte';
   import { getWidget } from './lib/registry';
@@ -8,6 +9,7 @@
   const params = new URLSearchParams(window.location.search);
   const sceneData = params.get('scene');
   const isBuilder = params.get('builder') != null;
+  const isConnect = params.get('connect') != null;
   const configId = params.get('config');
   const id = params.get('widget');
   const widget = id ? getWidget(id) : undefined;
@@ -40,6 +42,8 @@
   <SceneView />
 {:else if isBuilder}
   <Builder />
+{:else if isConnect}
+  <Connect />
 {:else if configId}
   <ConfigPanel />
 {:else if !id}

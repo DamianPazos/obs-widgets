@@ -54,6 +54,22 @@ export async function buildApp({
     subscribers: bus.size,
   }));
 
+  // Estado para el panel de la app de escritorio (fuente, canal, live/viewers,
+  // último evento). El desktop le suma la info del túnel.
+  app.get('/api/status', async () => {
+    const channel = config.KICK_CHANNEL;
+    const status = streamState.get(channel);
+    const viewers = streamState.getViewers(channel);
+    return {
+      source: bundle.source.name,
+      channel,
+      live: status?.payload.live ?? false,
+      viewers: viewers?.payload.viewers ?? null,
+      subscribers: bus.size,
+      lastEvent: streamState.getLastEvent(),
+    };
+  });
+
   registerWsRoute(app, bus, bundle.source.name, streamState, config.KICK_CHANNEL);
 
   if (bundle.kick) {

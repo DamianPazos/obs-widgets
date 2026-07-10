@@ -14,6 +14,13 @@ export interface DesktopSettings {
   port: number;
   /** Abrir la app al iniciar sesión en el SO. */
   autostart: boolean;
+  /** Credenciales de la app de Kick (modo oficial `kick`). */
+  clientId: string;
+  clientSecret: string;
+  /** ngrok: túnel automático para los webhooks del modo oficial. */
+  ngrokAuthtoken: string;
+  /** Dominio fijo de ngrok (ej. `mi-canal.ngrok-free.app`). */
+  ngrokDomain: string;
 }
 
 export const DEFAULT_SETTINGS: DesktopSettings = {
@@ -21,15 +28,25 @@ export const DEFAULT_SETTINGS: DesktopSettings = {
   channel: 'demo',
   port: 8787,
   autostart: false,
+  clientId: '',
+  clientSecret: '',
+  ngrokAuthtoken: '',
+  ngrokDomain: '',
 };
 
-/** Convierte los settings de la app en overrides de config del server. */
+/**
+ * Convierte los settings de la app en overrides de config del server. Las
+ * credenciales solo se incluyen si están cargadas (vacías = modo sin credenciales).
+ */
 export function toConfigOverrides(s: DesktopSettings): Partial<AppConfig> {
-  return {
+  const out: Partial<AppConfig> = {
     EVENT_SOURCE: s.eventSource,
     KICK_CHANNEL: s.channel,
     PORT: s.port,
   };
+  if (s.clientId) out.KICK_CLIENT_ID = s.clientId;
+  if (s.clientSecret) out.KICK_CLIENT_SECRET = s.clientSecret;
+  return out;
 }
 
 /** Settings persistidos en un archivo JSON (uno por usuario). */
@@ -66,6 +83,15 @@ export class SettingsStore {
       channel: merged.channel?.trim() || 'demo',
       port: Number.isFinite(merged.port) && merged.port > 0 ? Math.floor(merged.port) : 8787,
       autostart: Boolean(merged.autostart),
+      clientId: merged.clientId?.trim() ?? '',
+      clientSecret: merged.clientSecret?.trim() ?? '',
+      ngrokAuthtoken: merged.ngrokAuthtoken?.trim() ?? '',
+      // El dominio se normaliza sin esquema (guardamos solo el host).
+      ngrokDomain:
+        merged.ngrokDomain
+          ?.trim()
+          .replace(/^https?:\/\//, '')
+          .replace(/\/+$/, '') ?? '',
     };
     writeFileSync(this.file, JSON.stringify(this.settings, null, 2));
     return this.get();
