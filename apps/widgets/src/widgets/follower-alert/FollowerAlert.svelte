@@ -12,6 +12,8 @@
   const durationMs = Number(getParam('duration', '6000')) || 6000;
   const accent = `#${getParam('accent', '53fc18')}`;
   const title = getParam('title', '¡Nuevo seguidor!');
+  // Mensaje que se muestra cuando no sabemos el nombre (vía kick-ws).
+  const subtitle = getParam('subtitle', '¡Gracias por sumarte! 💚');
   const icon = getParam('icon', '💚');
   const isPreview = getParam('preview') === '1';
   const width = Number(getParam('width', '460')) || 460;
@@ -29,12 +31,12 @@
   const queue: FollowerNewEvent[] = [];
   let showing = false;
 
+  // Nombre real si Kick lo informa; si no, el mensaje genérico.
+  const message = $derived(current?.payload.username ?? subtitle);
+
   function demoEvent(): FollowerNewEvent {
-    return makeEvent<FollowerNewEvent>({
-      type: 'follower.new',
-      channel,
-      payload: { username: 'Nombre_Ejemplo' },
-    });
+    // En kick-ws no llega el nombre: el demo lo refleja (muestra el mensaje).
+    return makeEvent<FollowerNewEvent>({ type: 'follower.new', channel, payload: {} });
   }
 
   function showNext(): void {
@@ -85,6 +87,9 @@
 <div class="stage" style="--accent: {accent}; {themeStyle()}">
   {#if current}
     <div class="canvas" class:edit={ed.edit} style="width: {width}px; height: {height}px">
+      <div class="card-bg">
+        <span class="shine"></span>
+      </div>
       {#if ed.grid}
         <div class="grid" style="background-size: {ed.snap || 5}% {ed.snap || 5}%"></div>
       {/if}
@@ -126,7 +131,7 @@
         oncommit={ed.commit}
         onselect={ed.select}
       >
-        <strong class="name">{current.payload.username}</strong>
+        <strong class="name" class:is-message={!current.payload.username}>{message}</strong>
       </Positionable>
     </div>
   {/if}
@@ -146,14 +151,39 @@
 
   .canvas {
     position: relative;
-    background: linear-gradient(135deg, var(--accent), rgba(0, 0, 0, 0.35));
-    border-radius: var(--w-radius, 16px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-    animation: fade 0.4s ease;
+    animation: pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
 
-  .canvas.edit {
+  /* Fondo del card en su propia capa: así el brillo se recorta a los bordes
+     redondeados sin cortar los objetos (ícono/textos) que van encima. */
+  .card-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: var(--w-radius, 18px);
+    background:
+      radial-gradient(130% 130% at 0% 0%, rgba(255, 255, 255, 0.22), transparent 55%),
+      linear-gradient(135deg, var(--accent), rgba(0, 0, 0, 0.5));
+    box-shadow:
+      0 16px 46px rgba(0, 0, 0, 0.5),
+      0 0 34px -6px var(--accent),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* Barrido de luz que cruza el card al aparecer. */
+  .shine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60%;
+    left: -70%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: skewX(-18deg);
+    animation: sweep 2.6s ease-in-out 0.35s;
+  }
+
+  .canvas.edit .card-bg {
     outline: 2px solid rgba(83, 252, 24, 0.4);
     outline-offset: 2px;
   }
@@ -168,28 +198,39 @@
   }
 
   .icon {
-    font-size: 2.5rem;
+    font-size: 2.6rem;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
     animation: bounce 0.9s ease infinite alternate;
   }
 
   .icon-img {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.85rem;
+    height: 2.85rem;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 10px;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
     animation: bounce 0.9s ease infinite alternate;
   }
 
   .label {
-    font-size: 0.9rem;
-    font-weight: var(--w-font-weight, 600);
+    font-size: 0.92rem;
+    font-weight: var(--w-font-weight, 700);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.9;
+    letter-spacing: 0.1em;
+    opacity: 0.92;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 
   .name {
-    font-size: 1.9rem;
+    font-size: 1.95rem;
+    font-weight: var(--w-font-weight, 800);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+  }
+
+  /* Cuando es el mensaje genérico (sin nombre real) achicamos un poco. */
+  .name.is-message {
+    font-size: 1.4rem;
     font-weight: var(--w-font-weight, 700);
   }
 
@@ -202,14 +243,20 @@
     opacity: 0.7;
   }
 
-  @keyframes fade {
+  @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(12px) scale(0.94);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes sweep {
+    to {
+      left: 130%;
     }
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WidgetEventSchema } from '@obs-widgets/core';
-import { ANON_FOLLOWER, mapFollowersUpdated, mapKickWsEvent } from './kick-ws-source';
+import { mapFollowersUpdated, mapKickWsEvent } from './kick-ws-source';
 
 describe('mapFollowersUpdated', () => {
   it('dispara follower.new cuando el conteo sube', () => {
@@ -10,13 +10,13 @@ describe('mapFollowersUpdated', () => {
     expect(WidgetEventSchema.safeParse(event).success).toBe(true);
   });
 
-  it('usa el nombre si viene y un genérico si no', () => {
+  it('usa el nombre si viene y lo omite si no', () => {
     expect(
       mapFollowersUpdated({ username: 'juan', followers_count: 11 }, 'demo', 10).event,
     ).toMatchObject({ payload: { username: 'juan' } });
-    // Sin nombre: texto genérico (el schema exige username no vacío).
+    // Sin nombre: evento válido pero sin `username` (el widget muestra genérico).
     const anon = mapFollowersUpdated({ followers_count: 11 }, 'demo', 10).event;
-    expect(anon?.payload.username).toBe(ANON_FOLLOWER);
+    expect(anon?.payload.username).toBeUndefined();
     expect(WidgetEventSchema.safeParse(anon).success).toBe(true);
   });
 

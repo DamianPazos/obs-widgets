@@ -104,13 +104,6 @@ interface FollowersUpdatedPayload {
 }
 
 /**
- * Nombre genérico cuando Kick no informa quién siguió. La vía no oficial (WS
- * público / conteo) **no expone el nombre** del seguidor; para nombres reales hay
- * que usar el modo oficial (webhooks, `channel.followed`).
- */
-export const ANON_FOLLOWER = 'alguien';
-
-/**
  * Procesa un `FollowersUpdated` del WS público de Kick (vía instantánea, si Kick
  * lo emite).
  *
@@ -119,7 +112,8 @@ export const ANON_FOLLOWER = 'alguien';
  *  - Distinguimos follow (el contador sube) de unfollow (baja) comparando con el
  *    conteo previo (`prevCount`), sembrado al arrancar con `followers_count`.
  *  - Si el evento no trae contador, asumimos follow (salvo `followed:false`).
- *  - Si no hay nombre, usamos un texto genérico (el schema exige `username` no vacío).
+ *  - Si no hay nombre, emitimos el evento **sin `username`** (el widget muestra un
+ *    mensaje genérico). Para nombres reales, usar el modo oficial (webhooks).
  *
  * Devuelve el evento a emitir (o `null`) y el nuevo conteo para actualizar el estado.
  */
@@ -140,10 +134,10 @@ export function mapFollowersUpdated(
   }
 
   const name = p.username ?? p.follower?.username ?? p.user?.username;
-  const username = name && name.trim() ? name : ANON_FOLLOWER;
+  const payload = name && name.trim() ? { username: name } : {};
 
   return {
-    event: makeEvent<FollowerNewEvent>({ type: 'follower.new', channel, payload: { username } }),
+    event: makeEvent<FollowerNewEvent>({ type: 'follower.new', channel, payload }),
     count,
   };
 }
@@ -419,11 +413,12 @@ export class KickWsSource extends BaseEventSource {
     // Cap para no inundar si el conteo saltó mucho entre polls.
     const nuevos = Math.min(count - prev, 3);
     for (let i = 0; i < nuevos; i++) {
+      // Sin nombre disponible por esta vía: el widget muestra un mensaje genérico.
       this.emit(
         makeEvent<FollowerNewEvent>({
           type: 'follower.new',
           channel: this.options.channel,
-          payload: { username: ANON_FOLLOWER },
+          payload: {},
         }),
       );
     }

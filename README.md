@@ -203,8 +203,9 @@ más cómoda para uso personal.
 > ⚠️ **Follows en `kick-ws`**: Kick **no transmite los follows por el WS público**, así
 > que la alerta de nuevo seguidor se dispara detectando que sube el contador de
 > seguidores del canal (se consulta cada ~15s). Por eso aparece con un pequeño retraso y
-> **sin el nombre** de quien siguió. Si querés el **nombre real** del seguidor al instante,
-> usá el **modo oficial** (`kick`, con webhooks): el evento `channel.followed` sí lo trae.
+> **sin el nombre** de quien siguió: en su lugar muestra un **mensaje configurable**
+> (parámetro _Mensaje_). Si querés el **nombre real** del seguidor al instante, usá el
+> **modo oficial** (`kick`, con webhooks): el evento `channel.followed` sí lo trae.
 
 ### Modo oficial: `kick` (API + webhooks)
 

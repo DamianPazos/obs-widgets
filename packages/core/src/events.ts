@@ -30,7 +30,12 @@ export const FollowerNewEventSchema = z.object({
   ...baseFields,
   type: z.literal('follower.new'),
   payload: z.object({
-    username: z.string().min(1),
+    /**
+     * Nombre del seguidor. Es **opcional**: la vía no oficial (kick-ws) no expone
+     * quién siguió, así que el evento puede llegar sin nombre y el widget muestra
+     * un mensaje genérico en su lugar.
+     */
+    username: z.string().min(1).optional(),
     userId: z.string().optional(),
     avatarUrl: z.string().url().optional(),
   }),

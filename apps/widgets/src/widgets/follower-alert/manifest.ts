@@ -5,7 +5,7 @@ export const manifest: WidgetManifest = {
   id: 'follower-alert',
   name: 'Alerta de Nuevo Seguidor',
   description:
-    'Muestra una animación cuando alguien sigue el canal en Kick. Requiere el servidor relay corriendo.',
+    'Muestra una animación cuando alguien sigue el canal en Kick. En el modo simple (kick-ws) no llega el nombre del seguidor, así que se muestra un mensaje; para el nombre real, usá el modo oficial (webhooks).',
   mode: 'realtime',
   events: ['follower.new'],
   params: [
@@ -17,6 +17,13 @@ export const manifest: WidgetManifest = {
       default: '',
     },
     { name: 'title', label: 'Texto', type: 'text', default: '¡Nuevo seguidor!' },
+    {
+      name: 'subtitle',
+      label: 'Mensaje (cuando no hay nombre)',
+      description: 'Se muestra en lugar del nombre cuando Kick no lo informa (modo kick-ws).',
+      type: 'text',
+      default: '¡Gracias por sumarte! 💚',
+    },
     {
       name: 'icon',
       label: 'Ícono (emoji o imagen)',
@@ -64,7 +71,7 @@ export const manifest: WidgetManifest = {
   elements: [
     { id: 'icon', label: 'Ícono' },
     { id: 'label', label: 'Texto' },
-    { id: 'name', label: 'Nombre' },
+    { id: 'name', label: 'Nombre / mensaje' },
   ],
   load: () => import('./FollowerAlert.svelte'),
 };

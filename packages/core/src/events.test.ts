@@ -23,12 +23,22 @@ describe('WidgetEventSchema', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('rechaza un follower.new sin username', () => {
+  it('acepta un follower.new sin username (vía kick-ws, sin nombre)', () => {
     const parsed = WidgetEventSchema.safeParse({
       type: 'follower.new',
       channel: 'test',
       timestamp: new Date().toISOString(),
       payload: {},
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rechaza un follower.new con username vacío', () => {
+    const parsed = WidgetEventSchema.safeParse({
+      type: 'follower.new',
+      channel: 'test',
+      timestamp: new Date().toISOString(),
+      payload: { username: '' },
     });
     expect(parsed.success).toBe(false);
   });
