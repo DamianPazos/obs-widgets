@@ -62,7 +62,12 @@
         </div>
         <div class="actions">
           <a class="configure" href={`?config=${widget.id}`}>⚙ Personalizar</a>
-          <a class="preview" href={widgetUrl(widget.id)} target="_blank" rel="noreferrer">
+          <a
+            class="preview"
+            href={`${widgetUrl(widget.id)}&preview=1`}
+            target="_blank"
+            rel="noreferrer"
+          >
             Previsualizar ↗
           </a>
         </div>
